@@ -9,11 +9,13 @@
 # windows it counts the published hazard ratios inside that interval. It does
 # the same without selection into early infection. It gives the absolute
 # excess of CVD diagnoses under the true hazard ratios, and against the same
-# cohorts without infection. It then compares the seed-1 cohort with the
+# cohorts without infection. Against those cohorts it gives, per outcome and
+# window, the true risk difference after a recorded infection, with and
+# without death at infection. It then compares the seed-1 cohort with the
 # paper, its supplement, Statens Serum Institut (SSI) data in data/ssi/ and
-# Erikstrup et al. 2022. It draws figures/forest_12m.png,
-# figures/forest_outcome_truths.png and three figures/cohort_*.png, and saves
-# the estimates to results/run.rds.
+# Erikstrup et al. 2022. It draws
+# figures/forest_12m.png, figures/forest_outcome_truths.png and three
+# figures/cohort_*.png, and saves the estimates to results/run.rds.
 #
 # Needs R 4.6 with data.table, ggplot2, patchwork and knitr.
 # README.md gives the run time and memory of one measured run with 2 workers.
@@ -368,16 +370,31 @@ rm(x, late)
 # Each cohort is simulated, analysed and described in the worker that holds
 # it, because one cohort needs about 10 GiB. est holds one row per seed,
 # outcome and window. The worker then simulates the same cohort without
-# infection, with the same baseline scale sc, and compares the two.
+# infection, with the same baseline scale sc, and compares the two. rd holds
+# the true risk differences after a recorded infection, per outcome and window.
+# rdn holds them without death at infection. The event times with infection do
+# not depend on death at infection. The cohort without infection holds the
+# natural death times of the same persons. So e1, the event times of the
+# recorded persons, with the death times of d0 gives the risk with infection
+# without death at infection.
 res <- parallel::mclapply(
   CFG$seeds,
   function(s) {
     z <- sim(s)
     r <- list(est = analyse(z, s), desc = describe(z, s), x1 = first_cvd(z$d))
+    j <- which(z$d$seen)
+    a <- z$d$ana[j]
+    k1 <- risk_after(z$d, j, a)
+    e1 <- z$d[j, c("fu", CFG$outcomes), with = FALSE]
     sc <- z$sc
     rm(z)
     invisible(gc())
-    r$excess <- excess(r$x1, first_cvd(sim(s, infect = FALSE, sc = sc)$d))
+    d0 <- sim(s, infect = FALSE, sc = sc)$d
+    r$excess <- excess(r$x1, first_cvd(d0))
+    k0 <- risk_after(d0, j, a)
+    r$rd <- rd_pp(k1, k0)[, seed := s][]
+    e1[, tdeath := d0$tdeath[j]]
+    r$rdn <- rd_pp(risk_after(e1, seq_along(j), a), k0)[, seed := s][]
     r$x1 <- NULL
     return(r)
   },
@@ -389,6 +406,8 @@ est <- rbindlist(lapply(res, `[[`, "est"))
 sel <- rbindlist(lapply(res, function(r) r$desc$sel))
 v <- res[[1]]$desc
 exc <- lapply(res, `[[`, "excess")
+rd <- rbindlist(lapply(res, `[[`, "rd"))
+rdn <- rbindlist(lapply(res, `[[`, "rdn"))
 rm(res)
 
 ## The setting without selection ----
@@ -433,6 +452,24 @@ xt <- xt[,
 ]
 xk <- do.call(rbind, lapply(exc, `[[`, "risk"))
 xd <- 100 * (xk[, "with"] - xk[, "without"])
+# The true risk differences in percentage points, per outcome and window: the
+# mean over the seeds and its Monte Carlo SE. cum runs to the window's end, 24
+# months for 12 months or more. win is the part of cum inside the window. rdpn
+# is the same without death at infection.
+pool_rd <- function(x) {
+  return(x[,
+    .(
+      n = mean(n),
+      cum = mean(cum),
+      cum_se = sd(cum) / sqrt(.N),
+      win = mean(win),
+      win_se = sd(win) / sqrt(.N)
+    ),
+    keyby = .(outcome, window)
+  ])
+}
+rdp <- pool_rd(rd)
+rdpn <- pool_rd(rdn)
 
 ## Selection into early infection ----
 # The recorded pre-wave infected against the later infected, pooled over the
@@ -653,6 +690,47 @@ cat(sprintf(
   CFG$fsd,
   exp(2 * stats::qnorm(0.95) * CFG$fsd)
 ))
+cat(sprintf(
+  "\nTrue risk difference after a recorded infection, seeds %d-%d, percentage points (pp): risk with infection less without. cum runs to the end of the window, 24 months for 12 months or more; win is the part of cum inside the window. n: recorded persons followed to the end of the window, mean per cohort\n",
+  min(CFG$seeds),
+  max(CFG$seeds)
+))
+kab(
+  rdp[
+    order(match(outcome, CFG$outcomes), window),
+    .(outcome, window, n, cum, cum_se, win, win_se)
+  ],
+  digits = c(0, 0, 0, 5, 5, 5, 5)
+)
+r1 <- rd[seed == CFG$seeds[1] & outcome == "arrhythmias" & window == 5L]
+cat(sprintf(
+  "Check, seed %d, arrhythmias, 12 months or more, %s persons: win %.6f pp; cum to 24 months %.6f pp less cum to 12 months on the same persons %.6f pp = %.6f pp\n",
+  CFG$seeds[1],
+  f0(r1$n),
+  r1$win,
+  r1$cum,
+  r1$lo,
+  r1$cum - r1$lo
+))
+cat(sprintf(
+  "\nTrue risk difference after a recorded infection without death at infection, seeds %d-%d, pp: as above, but each person's death time with infection is the natural death time. The figures show cum\n",
+  min(CFG$seeds),
+  max(CFG$seeds)
+))
+kab(
+  rdpn[
+    order(match(outcome, CFG$outcomes), window),
+    .(outcome, window, n, cum, cum_se, win, win_se)
+  ],
+  digits = c(0, 0, 0, 5, 5, 5, 5)
+)
+cat(sprintf(
+  "Without death at infection, cum below 0: %d of %d means over seeds, %d of %d per-seed values\n",
+  rdpn[, sum(cum < 0)],
+  nrow(rdpn),
+  rdn[, sum(cum < 0)],
+  nrow(rdn)
+))
 
 cat("\n## The seed-1 cohort against the published data\n\n")
 kab(cmp)
@@ -698,13 +776,25 @@ saveRDS(
     sel = sel,
     desc = v,
     est0 = est0,
-    excess = exc
+    excess = exc,
+    rd = rd,
+    rdn = rdn
   ),
   "results/run.rds"
 )
 
-## Figure: 12 months or more, with a true hazard ratio column ----
-# Rows sorted by the published HR, the highest at the top.
+## Figure: 12 months or more, with true hazard ratio and risk difference ----
+# Rows sorted by the published HR, the highest at the top. The figures give the
+# cumulative risk difference without death at infection, as extra diagnoses
+# per 100,000 persons with a recorded infection (pp x 1000). rd_lab() rounds it
+# to 2 significant figures and at most 1 decimal. At 12 months or more it runs
+# to 24 months.
+rd_lab <- function(x) {
+  x <- round(signif(1000 * x, 2), 1)
+  x[x == 0] <- 0
+  return(ifelse(abs(x) >= 10, sprintf("%.0f", x), sprintf("%.1f", x)))
+}
+d12[rdpn[window == 5L], on = "outcome", rd := i.cum]
 ny <- nrow(d12)
 bands <- data.table(y = seq(2L, ny, by = 2L))
 q <- ggplot(d12)
@@ -715,7 +805,10 @@ q <- q + coord_cartesian(xlim = c(0.38, 1.6), ylim = c(0.5, ny + 0.5))
 q <- q + labs(x = "Hazard ratio at 12 months or more (log scale)", y = NULL)
 q <- q + theme_forest() + theme(plot.margin = margin(5, 2, 5, 5))
 t <- ggplot(
-  d12[, .(y, value = sprintf("%.2f", true), x = 0.5)],
+  rbind(
+    d12[, .(y, value = sprintf("%.2f", true), x = 0.17)],
+    d12[, .(y, value = rd_lab(rd), x = 0.66)]
+  ),
   aes(x = x, y = y, label = value)
 )
 t <- t +
@@ -729,8 +822,11 @@ t <- t + geom_text(size = 2.9)
 t <- t +
   scale_x_continuous(
     position = "top",
-    breaks = 0.5,
-    labels = "True\nhazard ratio",
+    breaks = c(0.17, 0.66),
+    labels = c(
+      "True\nhazard\nratio",
+      "Extra diagnoses\nper 100,000,\nto 24 months,\nwithout death\nat infection"
+    ),
     limits = c(0, 1),
     expand = c(0, 0)
   )
@@ -746,7 +842,7 @@ t <- t +
     ),
     plot.margin = margin(5, 5, 5, 0)
   )
-qq <- patchwork::wrap_plots(q, t, widths = c(1, 0.19)) +
+qq <- patchwork::wrap_plots(q, t, widths = c(1, 0.52)) +
   patchwork::plot_layout(guides = "collect") &
   theme(
     legend.position = "bottom",
@@ -780,6 +876,7 @@ WL <- c(
 ord <- ow[window == 5L][order(true, pub), outcome]
 ow[, y := match(outcome, ord)]
 ow[, window_pretty := factor(WL[window], levels = WL)]
+ow[rdpn, on = .(outcome, window), rd := i.cum]
 blank <- CJ(window = 3:5, x = c(0.45, 1.6))[,
   window_pretty := factor(WL[window], levels = WL)
 ]
@@ -792,33 +889,46 @@ q <- q +
     values = "#1b9e77",
     labels = paste(strwrap(LAB_SIM, 40), collapse = "\n")
   )
-# The true HR is written at the right edge of each panel.
+# The true HR and the risk difference to the end of the window are written at
+# the right edge of each panel.
 q <- q +
   geom_text(
-    aes(x = Inf, y = y, label = sprintf("%.2f", true)),
+    aes(x = Inf, y = y, label = sprintf("%.2f | %s", true, rd_lab(rd))),
     hjust = 1.15,
     size = 2.6,
     colour = "#d7191c"
   )
+# The header of each panel sits on white, over the grid and the line at 1.
 q <- q +
-  annotate(
-    "text",
-    x = Inf,
-    y = ny + 0.95,
-    label = "True",
-    hjust = 1.15,
+  geom_label(
+    data = data.table(
+      window_pretty = factor(WL, levels = WL),
+      lab = paste0(
+        "True HR | extra per 100,000 to ",
+        c("day 1", "day 30", "6 months", "12 months", "24 months"),
+        ",\nwithout death at infection"
+      )
+    ),
+    aes(x = Inf, y = ny + 1.2, label = lab),
+    inherit.aes = FALSE,
+    fill = "white",
+    linewidth = 0,
+    label.padding = unit(1, "pt"),
+    hjust = 1.1,
     size = 2.6,
     fontface = "bold",
     colour = "#d7191c"
   )
+# The month panels keep the breaks 0.71 and 1.41 while their range, with the
+# room for the labels, stays below 8.
 q <- q +
   scale_x_log10(
     breaks = function(l) {
-      if (max(l) > 3) c(0.5, 1, 2, 4, 8, 16, 32) else c(0.5, 0.71, 1, 1.41)
+      if (max(l) > 8) c(0.5, 1, 2, 4, 8, 16, 32) else c(0.5, 0.71, 1, 1.41)
     },
-    expand = expansion(mult = c(0.04, 0.3))
+    expand = expansion(mult = c(0.04, 0.55))
   )
-q <- q + coord_cartesian(ylim = c(0.5, ny + 1.3), clip = "off")
+q <- q + coord_cartesian(ylim = c(0.5, ny + 1.8), clip = "off")
 q <- q +
   facet_wrap(
     ~window_pretty,

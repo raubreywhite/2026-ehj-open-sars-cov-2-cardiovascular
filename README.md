@@ -13,6 +13,15 @@ Each row is one of the 12 cardiovascular outcomes with the highest baseline rate
 - **Red dot:** the assumed true hazard ratio. It is at least 1.01 in every outcome and window. It is the effect of infection on the hazard of each person, given age and frailty. It is not a population (marginal) hazard ratio.
 - **Green band:** the 95% prediction interval for the estimate of one study of this size. It comes from the 10 simulated cohorts. A cohort has an estimate in a window only if the window has at least 5 events. A band needs estimates from at least 6 cohorts, so each band is conditional on those estimates.
 - **Black square and bar:** the published estimate and its 95% CI, from Supplementary Table 1.
+- **Red numbers:** the true hazard ratio, then the true risk difference without death at infection, as extra diagnoses per 100,000 persons with a recorded infection.
+
+The true risk difference in the figures is cumulative. It compares the same persons with and without infection. It is the risk of a first diagnosis of the outcome with infection, less the risk without infection. The risk runs from the start of the analysis clock to the end of the window, and to 24 months for 12 months or more. The analysis clock starts at the infection date, or at entry for an infection before entry.
+
+The base is the persons with a recorded infection whose study period reaches the end of the window. For 12 months or more, that end is 24 months after the start. A death before the diagnosis counts as no diagnosis. A diagnosis of another outcome does not stop the follow-up. The value is the mean over the 10 cohorts. `Run.R` prints it in percentage points (pp), and 1 pp is 1,000 per 100,000.
+
+The figures give the risk difference without death at infection. With infection, each person then has their natural death time, as without infection. The baseline scale and every other setting stay the same. Death at infection removes persons before a diagnosis. For outcomes with a true hazard ratio near 1, it makes the risk difference fall below 0. That fall does not come from the effect of infection on the hazard of the outcome, which is what the figures show. `Run.R` prints the risk difference with and without death at infection.
+
+`Run.R` also prints a within-window risk difference, on the same base. It is the part of the cumulative risk difference that falls inside the window. It does not condition on survival without a diagnosis to the start of the window.
 
 The true hazard ratios are fitted to the published estimates, so the agreement below shows that the fit succeeded. It is not an independent validation. With the fitted values:
 
@@ -38,9 +47,11 @@ At 12 months or more, the true hazard ratio is 1.03 to 1.26 for 7 of the 12 outc
 - **Arithmetic.** Multiply (true HR - 1) by the test-negative rate of each outcome, and sum over the 15 outcomes. This gives 94.4 additional diagnoses per 100,000 person-years in months 1 to 11, and 77.1 from month 12. Over the 2,512,505 person-years after the first month in Supplementary Table 1, this is 2,321 diagnoses. That is 3.27% of the 70,885 persons with a CVD diagnosis. The arithmetic assumes that the test-negative rate applies to infected persons.
 - **Counterfactual.** `Run.R` simulates each cohort again without infection. The persons, their natural death times and their event thresholds stay the same. With infection, a mean of 2,381 (Monte Carlo SE 23) more persons per cohort have a CVD diagnosis. That is 52.8 per 100,000 persons, or 3.36% of 70,885. Of them, 1,488 have a recorded infection and 893 an unrecorded one.
 
-The counterfactual also gives the risk of a first CVD diagnosis in the 12 months after a recorded infection. It is 0.536% with infection and 0.486% without. The difference is 0.051 percentage points. The base is 665,687 persons per cohort with a recorded infection. Their study period runs at least 12 months past the start of their analysis clock. That start is the infection date, or entry for an infection before entry. A death in those 12 months counts as no diagnosis.
+The counterfactual also gives the risk of a first CVD diagnosis in the 12 months after a recorded infection. It is 0.536% with infection and 0.486% without. The difference is 0.051 percentage points. The base is 665,687 persons per cohort with a recorded infection. Their study period runs at least 12 months past the start of their analysis clock. A death in those 12 months counts as no diagnosis.
 
-The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the 12-month window only, with rows sorted by the published hazard ratio.
+The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column gives the true risk difference to 24 months without death at infection, on a base of 101,256 persons per cohort. It runs from 0.7 extra diagnoses per 100,000 for heart failure and cerebrovascular hemorrhage to 29 for arrhythmias.
+
+Without death at infection, none of the 60 cumulative risk differences, over 12 outcomes and 5 windows, is below 0. None of the 600 values of the 10 single cohorts is below 0. This follows from the model: every true hazard ratio is at least 1, and the two arms share the event thresholds and the death times. So infection can only make a diagnosis earlier. With death at infection, the risk difference to 24 months is below 0 for 4 of the 12 outcomes, and 0.00000 pp for heart failure.
 
 ## The model
 
@@ -133,7 +144,7 @@ Run `Rscript Run.R` from the repository root. It needs R 4.6 with data.table, gg
 
 `Run.R` sets the model in its CFG section, and sources the functions in `R/functions.R`. It checks the md5 of the 3 SSI files in `data/ssi/`. It stops if a value in CFG differs from the SSI file that it comes from. It prints the tables above, draws the 5 figures into `figures/`, and saves the estimates to `results/run.rds`.
 
-In one measured run with 2 workers, it took 961 seconds on a 20-core Linux machine. The largest R process peaked at 11.07 GiB of memory, and all R processes together at 20.44 GiB. Memory was sampled every second, so these are lower bounds. Run it on a machine with at least 25 GB of free memory. On Windows the run uses 1 worker.
+In one measured run with 2 workers, it took 1043 seconds on a 20-core Linux machine. The largest R process peaked at 10.98 GiB of memory, and all R processes together at 20.79 GiB. Memory was sampled every second, so these are lower bounds. Run it on a machine with at least 25 GB of free memory. On Windows the run uses 1 worker.
 
 ## Layout
 

@@ -1,6 +1,7 @@
 # The functions of Run.R: the simulation sim(), the analysis analyse(), the
-# cohort description describe() and the forest plot layers. Run.R sources
-# this file after it sets CFG and the constants that the functions read.
+# absolute excess, the cohort description describe() and the forest plot
+# layers. Run.R sources this file after it sets CFG and the constants that the
+# functions read.
 
 # The date at cumulative share p, on a curve with cumulative shares cm at x.
 qcurve <- function(p, cm, x) stats::approx(cm, x, xout = p, rule = 2)$y
@@ -360,6 +361,52 @@ excess <- function(x1, x0) {
     tot = tot,
     risk = c(n = length(j), with = risk(x1), without = risk(x0))
   ))
+}
+
+# The risk of a first diagnosis of each fitted outcome in one cohort d. j and a
+# are the recorded persons and the start of their analysis clock, both from the
+# cohort with infection. Window w runs from a + lo[w] to a + hi[w], with hi 730.5
+# days (24 months) for 12 months or more. Its base is the persons in j with
+# a + hi[w] <= fu. A diagnosis counts when it comes after a and at or before
+# death and fu. Other outcomes do not censor it. Per outcome and window, it
+# returns the base n and, on that base, the risks in (a, a + hi] (cum), in
+# (a, a + lo] (lo) and in (a + lo, a + hi] (win).
+risk_after <- function(d, j, a, cfg = CFG) {
+  lo <- EDGE
+  hi <- c(EDGE[-1L], 2 * DAY_YR)
+  fu <- d$fu[j]
+  end <- pmin(fu, d$tdeath[j], na.rm = TRUE)
+  retval <- list()
+  for (o in cfg$outcomes) {
+    tk <- d[[o]][j]
+    ok <- !is.na(tk) & tk > a & tk <= end
+    for (w in seq_along(hi)) {
+      b <- a + hi[w] <= fu
+      retval[[length(retval) + 1L]] <- data.table(
+        outcome = o,
+        window = w,
+        n = sum(b),
+        cum = mean(ok[b] & tk[b] <= a[b] + hi[w]),
+        lo = mean(ok[b] & tk[b] <= a[b] + lo[w]),
+        win = mean(ok[b] & tk[b] > a[b] + lo[w] & tk[b] <= a[b] + hi[w])
+      )
+    }
+  }
+  return(rbindlist(retval))
+}
+
+# The risk differences in percentage points: k1 is risk_after() of the cohort
+# with infection, and k0 of the same persons without it.
+rd_pp <- function(k1, k0) {
+  stopifnot(identical(k1[, .(outcome, window, n)], k0[, .(outcome, window, n)]))
+  return(k1[, .(
+    outcome,
+    window,
+    n,
+    cum = 100 * (cum - k0$cum),
+    lo = 100 * (lo - k0$lo),
+    win = 100 * (win - k0$win)
+  )])
 }
 
 # The paper's analysis. Follow-up stops at the first cardiovascular event of
