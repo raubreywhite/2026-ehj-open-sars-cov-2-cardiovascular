@@ -6,16 +6,17 @@
 #
 # It prints, per outcome at 12 months or more, the assumed true hazard ratio,
 # one study's 95% prediction interval and the published estimate. Over all 5
-# windows it counts the published hazard ratios inside that interval. It then
-# compares the seed-1 cohort with the paper, its supplement, Statens Serum
-# Institut (SSI) data in data/ssi/ and Erikstrup et al. 2022. It draws
-# figures/forest_12m.png, figures/forest_outcome_truths.png and three
-# figures/cohort_*.png, and saves the estimates to results/run.rds.
+# windows it counts the published hazard ratios inside that interval. It does
+# the same without selection into early infection. It gives the absolute
+# excess of CVD diagnoses under the true hazard ratios, and against the same
+# cohorts without infection. It then compares the seed-1 cohort with the
+# paper, its supplement, Statens Serum Institut (SSI) data in data/ssi/ and
+# Erikstrup et al. 2022. It draws figures/forest_12m.png,
+# figures/forest_outcome_truths.png and three figures/cohort_*.png, and saves
+# the estimates to results/run.rds.
 #
 # Needs R 4.6 with data.table, ggplot2, patchwork and knitr.
-# With 2 workers the run took 299 seconds on a 20-core Linux machine. The
-# largest R process peaked at 8.66 GiB, and all its R processes together at
-# 17.23 GiB. Memory was sampled every 2 seconds, so these are lower bounds.
+# README.md gives the run time and memory of one measured run with 2 workers.
 # On Windows the run uses 1 worker.
 # Run it from the repository root with: Rscript Run.R
 
@@ -158,8 +159,9 @@ CFG$step_mult <- 1.1750
 # fsd: SD of log frailty, a shared unrecorded cardiovascular risk.
 # p80: the probability that infection kills an 80-year-old of average frailty
 # (u = 1); it is multiplied by the person's frailty u.
-# detect_early, detect_late: the probability that a test records an infection,
-# before and after widespread testing ended on day 740.
+# detect_early, detect_late: timing weights p of unrecorded infections, before
+# and after widespread testing ended on day 740. Unrecorded infections follow
+# the dates of recorded ones weighted by (1 - p) / p. contam sets their number.
 # pre_frailty: selection into early infection. A person 1 SD of log frailty
 # less frail has exp(pre_frailty) times the odds of an infection before o0.
 # All five are assumed. No source measures them.
@@ -176,7 +178,9 @@ CFG$contam <- (CFG$p_infected / (1 - 1 / 3) - CFG$p_infected) /
 
 # The assumed true hazard ratios, one row per outcome, fitted so the simulated
 # estimates reproduce the published ones. The windows start at 0, 1, 30,
-# 182.62 and 365.25 days since infection.
+# 182.62 and 365.25 days since infection. Arterial embolism, cardiac arrest
+# and cardiomyopathy have the 3 lowest rates and are not among the 12 fitted
+# outcomes. They share one assumed row.
 EDGE <- c(0, 1, 30, 182.62, 365.25)
 # The values are the fitted ones, to full precision.
 # fmt: skip
@@ -197,6 +201,27 @@ CFG$tm <- matrix(c(
   11.133502702879513, 1.1576971449486315, 1.1576971449486315, 1.1576971449486315, 1.1576971449486315,
   3.217387769877089, 1.0388171766645773, 1.0388171766645773, 1.0388171766645773, 1.031029189424833
 ), 15, byrow = TRUE, dimnames = list(names(CFG$rate), c("day1", "m_lt1", "m_1_5", "m_6_11", "m_ge12")))
+# The setting without selection: pre_frailty 0, with its own true hazard
+# ratios, fitted in the same way at pre_frailty 0. The 3 outcomes that are not
+# fitted keep their row of CFG$tm.
+# fmt: skip
+CFG$tm0 <- matrix(c(
+  7.335333389010038, 1.1029911975960427, 1.01, 1.01, 1.01,
+  10.53410698186012, 1.2499104524170328, 1.01, 1.01, 1.01,
+  7.893063612560377, 1.2615455186249593, 1.01, 1.01, 1.01,
+  10.760370784841275, 1.2897780490855373, 1.053864192346875, 1.053864192346875, 1.01,
+  2.773580494365079, 1.653686207745643, 1.1900986859030511, 1.1900986859030511, 1.01,
+  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
+  22.149574619184754, 6.262487567492464, 1.5311079920349502, 1.1744322729076702, 1.0521536668847633,
+  4.343664467281451, 1.01, 1.01, 1.01, 1.01,
+  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
+  12.300877806361791, 1.011630087158952, 1.01, 1.01, 1.01,
+  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
+  5.614642226915205, 1.1912267898642799, 1.0905667298553436, 1.0905667298553436, 1.0654963830945277,
+  9.386977799329799, 1.3434669690431607, 1.0954643284216492, 1.0954643284216492, 1.01,
+  11.500014317024652, 1.0476379938554057, 1.0476379938554057, 1.0476379938554057, 1.0476379938554057,
+  2.8661403389546654, 1.01, 1.01, 1.01, 1.01
+), 15, byrow = TRUE, dimnames = dimnames(CFG$tm))
 
 ## Analysis ----
 # 5-year age bands, and calendar year split at 1 January 2021, 2022 and 2023.
@@ -266,7 +291,7 @@ WIN_LAB <- c(
   "6-11 months",
   "12+ months"
 )
-# Erikstrup et al. 2022: 66% (95% CI 63-70%) of healthy blood donors aged
+# Erikstrup et al. 2022: 66% (95% CI 63-70%) of all healthy blood donors aged
 # 17-72 were infected from 1 November 2021 to 15 March 2022, days 610 to 744.
 ERIK <- c(lo = 610, hi = 745)
 # The SSI source files. data/ssi/README.md gives their origin.
@@ -341,13 +366,20 @@ rm(x, late)
 
 ## The simulated cohorts ----
 # Each cohort is simulated, analysed and described in the worker that holds
-# it, because one cohort needs about 8.6 GiB. est holds one row per seed,
-# outcome and window.
+# it, because one cohort needs about 10 GiB. est holds one row per seed,
+# outcome and window. The worker then simulates the same cohort without
+# infection, with the same baseline scale sc, and compares the two.
 res <- parallel::mclapply(
   CFG$seeds,
   function(s) {
     z <- sim(s)
-    return(list(est = analyse(z, s), desc = describe(z, s)))
+    r <- list(est = analyse(z, s), desc = describe(z, s), x1 = first_cvd(z$d))
+    sc <- z$sc
+    rm(z)
+    invisible(gc())
+    r$excess <- excess(r$x1, first_cvd(sim(s, infect = FALSE, sc = sc)$d))
+    r$x1 <- NULL
+    return(r)
   },
   mc.cores = CFG$n_core,
   mc.preschedule = FALSE
@@ -356,42 +388,51 @@ stopifnot(!vapply(res, inherits, logical(1), "try-error"))
 est <- rbindlist(lapply(res, `[[`, "est"))
 sel <- rbindlist(lapply(res, function(r) r$desc$sel))
 v <- res[[1]]$desc
+exc <- lapply(res, `[[`, "excess")
 rm(res)
 
-# PART 2 -- ANALYSIS ====
-# Per outcome and window: mean m and SD s of the log HR over the k seeds. The
-# 95% prediction interval of one study's estimate is
-# exp(m +- qt(0.975, k - 1) * s * sqrt(1 + 1/k)). Fewer than 6 seeds give no
-# interval.
-ow <- est[,
-  .(m = mean(log(hr)), s = sd(log(hr)), k = .N),
-  keyby = .(outcome, window)
-]
-ow <- ow[CFG$pub, on = .(outcome, window)]
-ow[, true := CFG$tm[cbind(outcome, colnames(CFG$tm)[window])]]
-ow[, h := qt(0.975, k - 1) * s * sqrt(1 + 1 / k)]
-ow[, `:=`(l95 = exp(m - h), u95 = exp(m + h))]
-ow[k < 6L, c("l95", "u95") := NA_real_]
-ow[, pub_in_pi := pub >= l95 & pub <= u95]
+## The setting without selection ----
+CFG0 <- modifyList(CFG, list(pre_frailty = 0, tm = CFG$tm0))
+est0 <- parallel::mclapply(
+  CFG$seeds,
+  function(s) analyse(sim(s, CFG0), s, CFG0),
+  mc.cores = CFG$n_core,
+  mc.preschedule = FALSE
+)
+stopifnot(!vapply(est0, inherits, logical(1), "try-error"))
+est0 <- rbindlist(est0)
 
-## Pooled over the 12 outcomes ----
-# Per seed and window, the mean log HR over the outcomes with an estimate. gm
-# is its mean over the seeds, exponentiated, against the geometric mean of the
-# published HRs. p is a one-sample t-test over the seeds, so it reflects Monte
-# Carlo error only.
-lg <- est[, .(lg = mean(log(hr))), keyby = .(window, seed)]
-lg <- lg[CFG$pub[, .(pub_lg = mean(log(pub))), keyby = window], on = "window"]
-pooled <- lg[,
-  .(
-    gm = exp(mean(lg)),
-    pub = exp(pub_lg[1]),
-    p = stats::t.test(lg, mu = pub_lg[1])$p.value
-  ),
-  keyby = window
-]
-# Per seed, the outcomes whose 95% CI at 12 months or more lies below 1.
-sig <- est[window == 5L, .(n = sum(exp(log(hr) + 1.96 * se) < 1)), keyby = seed]
+# PART 2 -- ANALYSIS ====
+# The prediction intervals, the pooled rows and the count of outcomes with a
+# 95% CI below 1, for the main setting and the setting without selection.
+cp <- compare_pub(est)
+ow <- cp$ow
+pooled <- cp$pooled
+sig <- cp$sig
+cp0 <- compare_pub(est0, CFG0)
 n_sig_pub <- CFG$pub[window == 5L, sum(hi < 1)]
+
+## The absolute excess ----
+# The arithmetic: (true HR - 1) times the published test-negative rate of each
+# outcome, summed over the 15 outcomes, per 1000 person-years at 1-5, 6-11 and
+# 12 or more months. It assumes that the test-negative rate applies to infected
+# persons. xpy is the published person-years in those windows (Supp Table 1).
+xr <- colSums((CFG$tm[, 3:5] - 1) * CFG$rate)
+xpy <- PUB_PY[4:6, "t1"]
+# The counterfactual, per seed: persons with a CVD diagnosis, with infection
+# less without it, by infection status with infection. And the risk of a first
+# CVD diagnosis in the 12 months after a recorded infection, with and without.
+xt <- rbindlist(Map(function(x, s) x$tot[, seed := s], exc, CFG$seeds))
+xt <- rbindlist(
+  list(xt, xt[, .(grp = "all", excess = sum(excess)), keyby = seed]),
+  use.names = TRUE
+)
+xt <- xt[,
+  .(m = mean(excess), se = sd(excess) / sqrt(.N)),
+  keyby = grp
+]
+xk <- do.call(rbind, lapply(exc, `[[`, "risk"))
+xd <- 100 * (xk[, "with"] - xk[, "without"])
 
 ## Selection into early infection ----
 # The recorded pre-wave infected against the later infected, pooled over the
@@ -429,7 +470,7 @@ cmp <- data.table(
     "Test-negative CVD rate, whole period",
     "Test-negative CVD rate, to 10 March 2022",
     "Test-negative CVD rate, after 10 March 2022",
-    "First infection, 1 November 2021 to 15 March 2022",
+    "Infected, 1 November 2021 to 15 March 2022",
     "Unrecorded share of those infections"
   ),
   simulated = c(
@@ -443,11 +484,7 @@ cmp <- data.table(
     f0(cv$cvd_n),
     f0(cv$cvd_pos_n),
     sprintf("%.3f", 1000 * v$tn),
-    sprintf(
-      "%s of those uninfected on 1 November 2021 (%s of all)",
-      pct(cv$erik_n / cv$erik_susc),
-      pct(cv$erik_n / cv$n)
-    ),
+    sprintf("%s of all persons", pct(cv$erik_n / cv$n)),
     pct(cv$erik_unrec)
   ),
   published = c(
@@ -461,7 +498,7 @@ cmp <- data.table(
     f0(PAPER$cvd_n),
     f0(PAPER$cvd_pos_n),
     sprintf("%.3f", tn_pub),
-    "66% (63-70%) of blood donors aged 17-72",
+    "66% (63-70%) of all blood donors aged 17-72",
     "one third"
   ),
   source = c(
@@ -559,13 +596,62 @@ cat(sprintf(
   n_sig_pub
 ))
 cat(sprintf(
-  "Pre-wave / later recorded infected, seeds %d-%d: mean frailty ratio %.4f, modelled baseline CVD rate ratio %.4f (seed 1: %.4f and %.4f)\n",
+  "\nWithout selection (pre_frailty 0), published HR inside the 95%% prediction interval: %d of %d outcome-windows with an interval\n",
+  sum(cp0$ow$pub_in_pi, na.rm = TRUE),
+  sum(!is.na(cp0$ow$l95))
+))
+kab(cp0$pooled, digits = 4)
+cat(sprintf(
+  "Without selection, 12 months or more: geometric mean %.4f, published %.4f, p = %.2g; outcomes with a 95%% CI below 1: mean %.1f of 12 per cohort\n",
+  cp0$pooled[window == 5L, gm],
+  cp0$pooled[window == 5L, pub],
+  cp0$pooled[window == 5L, p],
+  mean(cp0$sig$n)
+))
+cat(sprintf(
+  "\nAbsolute excess, (true HR - 1) times the test-negative rates: %.1f per 100,000 person-years in months 1-11, %.1f from month 12. Over the %s published person-years after month 1: %.1f diagnoses, %.2f%% of %s\n",
+  100 * sum(xr[1:2] * xpy[1:2]) / sum(xpy[1:2]),
+  100 * xr[[3]],
+  f0(sum(xpy)),
+  sum(xr * xpy) / 1000,
+  100 * sum(xr * xpy) / 1000 / PAPER$cvd_n,
+  f0(PAPER$cvd_n)
+))
+cat(sprintf(
+  "Against the same cohorts without infection, seeds %d-%d: %.1f (MC SE %.1f) more persons with a CVD diagnosis, %.1f per 100,000 persons, %.2f%% of %s. Recorded infected %.1f (%.1f), unrecorded infected %.1f (%.1f)\n",
+  min(CFG$seeds),
+  max(CFG$seeds),
+  xt["all", m],
+  xt["all", se],
+  1e5 * xt["all", m] / CFG$n,
+  100 * xt["all", m] / PAPER$cvd_n,
+  f0(PAPER$cvd_n),
+  xt["recorded", m],
+  xt["recorded", se],
+  xt["unrecorded", m],
+  xt["unrecorded", se]
+))
+cat(sprintf(
+  "Risk of a first CVD diagnosis in the 12 months after a recorded infection, %s persons per cohort: %.3f%% with infection, %.3f%% without, difference %.4f percentage points (MC SE %.4f)\n",
+  f0(mean(xk[, "n"])),
+  100 * mean(xk[, "with"]),
+  100 * mean(xk[, "without"]),
+  mean(xd),
+  sd(xd) / sqrt(length(xd))
+))
+cat(sprintf(
+  "Pre-wave / later recorded infected, seeds %d-%d: mean frailty ratio %.4f, modelled baseline CVD rate ratio, including age, %.4f (seed 1: %.4f and %.4f)\n",
   min(CFG$seeds),
   max(CFG$seeds),
   sel_ratio["all", "u"],
   sel_ratio["all", "rate"],
   sel_ratio["seed1", "u"],
   sel_ratio["seed1", "rate"]
+))
+cat(sprintf(
+  "Frailty, SD %.2f of log frailty: the 95th percentile of the multiplier is %.1f times the 5th\n",
+  CFG$fsd,
+  exp(2 * stats::qnorm(0.95) * CFG$fsd)
 ))
 
 cat("\n## The seed-1 cohort against the published data\n\n")
@@ -598,13 +684,22 @@ cat(sprintf(
 cat(sprintf(
   "SSI first infections, March 2020 to December 2022: %s; scale to the cohort %s / %s = %.4f\n",
   f0(sum(mon$ssi)),
-  f0(cv$rec_n),
+  f0(CFG$p_infected * cv$n),
   f0(sum(mon$ssi)),
-  cv$rec_n / sum(mon$ssi)
+  CFG$p_infected * cv$n / sum(mon$ssi)
 ))
 dir.create("results", showWarnings = FALSE)
 saveRDS(
-  list(est = est, ow = ow, pooled = pooled, sig = sig, sel = sel, desc = v),
+  list(
+    est = est,
+    ow = ow,
+    pooled = pooled,
+    sig = sig,
+    sel = sel,
+    desc = v,
+    est0 = est0,
+    excess = exc
+  ),
   "results/run.rds"
 )
 

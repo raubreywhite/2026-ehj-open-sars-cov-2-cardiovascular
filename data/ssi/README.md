@@ -1,6 +1,6 @@
 # SSI source files
 
-These three files are byte-for-byte copies of files inside two zip archives from Statens Serum Institut (SSI), downloaded on 25 September 2026. `Run.R` reads all three. It stops if an md5 differs from the value below.
+These three files are byte-for-byte copies of files inside two zip archives from Statens Serum Institut (SSI), downloaded on 25 September 2026. They are © Copyright Statens Serum Institut, and are included with SSI's permission. The MIT licence of this repository does not cover them. `Run.R` reads all three. It stops if an md5 differs from the value below.
 
 | File | Zip archive | Path in the zip | File md5 |
 |---|---|---|---|

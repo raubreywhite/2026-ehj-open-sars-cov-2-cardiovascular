@@ -27,6 +27,33 @@ pps_draw <- function(w, k) {
   return(o[floor(cs - u) > floor(c(0, cs[-length(cs)]) - u)])
 }
 
+# The new persons for infections that must move, one per date t. For each
+# date in turn, it draws a person at random from cand[[key]] who is free and
+# alive on that date (last >= t). Where there is none, it draws from all free
+# persons alive on that date, with probability proportional to w. A drawn
+# person is no longer free. Rejection over 64 draws, then the full set, keeps
+# the draw uniform.
+move_to_living <- function(t, key, cand, free, last, w) {
+  to <- integer(length(t))
+  for (i in seq_along(t)) {
+    cc <- cand[[key[i]]]
+    j <- cc[sample.int(length(cc), min(length(cc), 64L), replace = TRUE)]
+    j <- j[free[j] & last[j] >= t[i]]
+    if (length(j) == 0L) {
+      j <- cc[free[cc] & last[cc] >= t[i]]
+      pw <- NULL
+      if (length(j) == 0L) {
+        j <- which(free & last >= t[i])
+        pw <- w[j]
+      }
+      j <- j[sample.int(length(j), 1L, prob = pw)]
+    }
+    to[i] <- j[1L]
+    free[to[i]] <- FALSE
+  }
+  return(to)
+}
+
 # 16-point Gauss-Legendre nodes t and weights g on (0, 1), by the Golub-Welsch
 # method. The weights sum to 1.
 GL16 <- local({
@@ -37,12 +64,13 @@ GL16 <- local({
   list(t = (e$values + 1) / 2, g = e$vectors[1L, ]^2)
 })
 
-# One simulated cohort. Follow-up is cut into 7 segments per person: before
-# infection, one per exposure window, and one more at the calendar step. The
+# One simulated cohort. Follow-up is cut into 11 segments per person: before
+# infection, one per exposure window on the analysis clock and on the
+# biological clock, and one more at the calendar step. The
 # hazard of each outcome is Gompertz in age, times frailty, times the calendar
 # step, times the outcome's hazard ratio in the segment's window. One Exp(1)
 # threshold per person and outcome inverts in closed form to the event time.
-sim <- function(seed, cfg = CFG) {
+sim <- function(seed, cfg = CFG, infect = TRUE, sc = NULL) {
   n <- cfg$n
   set.seed(seed)
   lam <- cfg$rate / 1000 / DAY_YR # per day at the median age
@@ -58,16 +86,34 @@ sim <- function(seed, cfg = CFG) {
   d[, fu := STUDY - entry]
   d[, u := exp(rnorm(.N, -cfg$fsd^2 / 2, cfg$fsd))]
 
+  # Natural death: Gompertz in age, proportional to frailty, and independent
+  # of infection. It comes before infection, so that every infection can fall
+  # at or before it. last is its calendar day, Inf without a death in
+  # follow-up. ki is the draw for death at infection below. The draws use
+  # their own stream, and the main stream is restored after them.
+  rs <- .GlobalEnv$.Random.seed
+  Ad <- (DAY_YR / bd) * exp(bd * (d$age0 - cfg$age_median))
+  kd <- (0.0008 / DAY_YR) * d$u
+  Hd <- kd * (Ad * exp(bd * d$fu / DAY_YR) - Ad)
+  set.seed(seed + 2000000L)
+  ed <- rexp(n)
+  ki <- runif(n)
+  .GlobalEnv$.Random.seed <- rs
+  tdn <- rep(NA_real_, n)
+  die <- ed < Hd
+  tdn[die] <- (DAY_YR / bd) * log((Ad[die] + ed[die] / kd[die]) / Ad[die])
+  last <- d$entry + fcoalesce(tdn, Inf)
+
   # Recorded infections. Exactly round(n * p_infected) persons are infected.
   # pps_draw() draws each with a probability proportional to the rr of their
   # age group.
-  rr <- cfg$inf_age$rr[findInterval(d$age0, cfg$inf_age$edges)]
+  ag <- findInterval(d$age0, cfg$inf_age$edges)
+  rr <- cfg$inf_age$rr[ag]
   hit <- rep(FALSE, n)
   hit[pps_draw(rr, round(n * cfg$p_infected))] <- TRUE
   # The probability of a date before o0 is a logistic tilt on standardised log
-  # frailty. uniroot() sets the intercept so that share stays at f_pre. The
-  # other dates come from the rest of the curve.
-  d[, inf_cal := NA_real_]
+  # frailty. uniroot() sets the intercept so that its mean over all n persons
+  # is f_pre. The other dates come from the rest of the curve.
   zf <- (log(d$u) + cfg$fsd^2 / 2) / cfg$fsd
   a <- stats::uniroot(
     function(x) mean(stats::plogis(x - cfg$pre_frailty * zf)) - cfg$f_pre,
@@ -75,23 +121,19 @@ sim <- function(seed, cfg = CFG) {
     extendInt = "yes"
   )$root
   pre <- runif(n) < stats::plogis(a - cfg$pre_frailty * zf)
-  d[hit & pre, inf_cal := runif(.N, 90, cfg$o0)]
-  d[
-    hit & !pre,
-    inf_cal := qcurve(runif(.N, cfg$f_pre, 1), cfg$inf_cm, cfg$inf_x)
-  ]
-  # bio: infection on the biological clock, in days since entry. ana: the
-  # analysis clock, which starts a recorded infection before entry at entry.
-  d[, bio := pmax(inf_cal - entry, -30)]
-  d[is.na(inf_cal) | bio >= fu, bio := NA_real_]
-  d[, ana := pmax(bio, 0)]
-  d[, seen := !is.na(ana)]
+  rec <- rep(NA_real_, n)
+  rec[hit & pre] <- runif(sum(hit & pre), 90, cfg$o0)
+  rec[hit & !pre] <- qcurve(
+    runif(sum(hit & !pre), cfg$f_pre, 1),
+    cfg$inf_cm,
+    cfg$inf_x
+  )
 
-  # Unrecorded infections. The fitted curve describes recorded infections, so
-  # the missed ones follow it weighted by (1 - p) / p, with p the probability
-  # of detection. They go to never-recorded persons by pps_draw(), with the
-  # same rr by age group.
-  cand <- which(!d$seen)
+  # Unrecorded infections. Their number is set by contam. Their dates follow
+  # the fitted curve of recorded infections, weighted by (1 - p) / p, with p
+  # the timing weight detect_early before day 740 and detect_late after. They
+  # go to never-recorded persons by pps_draw(), with the same rr by age group.
+  cand <- which(is.na(rec))
   k <- round(length(cand) * cfg$contam)
   m <- 4L * k
   dt0 <- qcurve(runif(m), cfg$inf_cm, cfg$inf_x)
@@ -104,14 +146,54 @@ sim <- function(seed, cfg = CFG) {
   set.seed(seed + 6000000L)
   late <- which(dt0 >= 740)
   dt0[late] <- qcurve(runif(length(late)), cfg$ww_cm, cfg$ww_edges)
+  unr <- rep(NA_real_, n)
+  unr[pick] <- dt0
+
+  # Only a living person is infected. A recorded infection dated after natural
+  # death moves, with its date, to a person of the same age group and the same
+  # pre draw who is alive on that date and has no recorded infection. An
+  # unrecorded infection moves in the same way, to a never-recorded person of
+  # the same age group without one, when it falls after natural death or its
+  # person took over a recorded infection. move_to_living() draws the new
+  # persons, on their own stream.
+  set.seed(seed + 3000000L)
+  nag <- length(cfg$inf_age$rr)
+  bad <- which(rec > last)
+  tb <- rec[bad]
+  rec[bad] <- NA_real_
+  key <- ag + nag * pre
+  free <- is.na(rec)
+  cand <- split(which(free), factor(key[free], levels = seq_len(2L * nag)))
+  rec[move_to_living(tb, key[bad], cand, free, last, rr)] <- tb
+  bad <- which(!is.na(unr) & (!is.na(rec) | unr > last))
+  tb <- unr[bad]
+  unr[bad] <- NA_real_
+  free <- is.na(rec) & is.na(unr)
+  cand <- split(which(free), factor(ag[free], levels = seq_len(nag)))
+  unr[move_to_living(tb, ag[bad], cand, free, last, rr)] <- tb
   .GlobalEnv$.Random.seed <- rs
-  set(d, pick, "inf_cal", dt0)
-  set(d, pick, "bio", dt0 - d$entry[pick])
+
+  # bio: infection on the biological clock, in days since entry. ana: the
+  # analysis clock, which starts a recorded infection before entry at entry.
+  d[, inf_cal := fcoalesce(rec, unr)]
+  d[, bio := inf_cal - entry]
+  d[!is.na(rec), bio := pmax(bio, -30)]
   d[!is.na(bio) & bio >= fu, bio := NA_real_]
+  d[, ana := fifelse(is.na(rec), NA_real_, pmax(bio, 0))]
+  d[, seen := !is.na(ana)]
+  # infect = FALSE keeps every draw but removes every infection. Death and the
+  # event thresholds come from their own streams, so the persons, their natural
+  # death times and their thresholds stay the same as with infection.
+  if (!infect) {
+    d[, c("inf_cal", "bio", "ana") := NA_real_]
+    d[, seen := FALSE]
+  }
 
   # Segment edges in days since entry. A recorded infection splits follow-up
-  # on the analysis clock, an unrecorded one on the biological clock. The
-  # calendar step adds one more edge. A bubble sort puts the edges in order.
+  # on the analysis clock, and an unrecorded one on the biological clock. A
+  # recorded infection before entry also splits it on the biological clock,
+  # so each segment lies in one window of each clock. The calendar step adds
+  # one more edge. A bubble sort puts the edges in order.
   brk <- outer(d$ana, EDGE, "+")
   hid <- which(is.na(d$ana) & !is.na(d$bio))
   brk[hid, ] <- pmax(outer(d$bio[hid], EDGE, "+"), 0)
@@ -123,6 +205,14 @@ sim <- function(seed, cfg = CFG) {
     s0[, j] <- pmax(s0[, j], s0[, j - 1L])
   }
   s0 <- cbind(s0, pmin(pmax(cfg$step_day - d$entry, 0), d$fu))
+  # The edges bio + EDGE[-1] of a recorded infection before entry, clamped to
+  # (0, fu). The edge bio + EDGE[1] clamps to 0, which is already column 1.
+  # Other rows get 0, which only adds segments of length 0.
+  neg <- which(!is.na(d$ana) & d$bio < 0)
+  bb <- matrix(0, n, length(EDGE) - 1L)
+  bb[neg, ] <- pmin(pmax(outer(d$bio[neg], EDGE[-1L], "+"), 0), d$fu[neg])
+  s0 <- cbind(s0, bb)
+  rm(bb)
   for (p in seq_len(ncol(s0) - 1L)) {
     for (j in seq_len(ncol(s0) - 1L)) {
       sw <- s0[, j] > s0[, j + 1L]
@@ -146,25 +236,16 @@ sim <- function(seed, cfg = CFG) {
   Glo <- Acon * exp(b * s0[, -ncol(s0)] / DAY_YR)
   Ghi <- Acon * exp(b * s0[, -1L] / DAY_YR)
 
-  # Death, Gompertz in age and proportional to frailty, then death at
-  # infection with a probability that rises with age and frailty. The draws
-  # use their own stream, and the main stream is restored after them.
-  rs <- .GlobalEnv$.Random.seed
-  Ad <- (DAY_YR / bd) * exp(bd * (d$age0 - cfg$age_median))
-  kd <- (0.0008 / DAY_YR) * d$u
-  Hd <- kd * (Ad * exp(bd * d$fu / DAY_YR) - Ad)
-  set.seed(seed + 2000000L)
-  ed <- rexp(n)
-  d[, tdeath := NA_real_]
-  die <- ed < Hd
-  d[die, tdeath := (DAY_YR / bd) * log((Ad[die] + ed[die] / kd[die]) / Ad[die])]
+  # Natural death, then death at infection with a probability that rises with
+  # age and frailty. Every person was alive at entry, so death at infection
+  # applies only to an infection during follow-up (bio >= 0).
+  d[, tdeath := tdn]
   pcd <- cfg$p80 *
     exp(bd * (d$age0 - cfg$age_median)) /
     exp(bd * (80 - cfg$age_median)) *
     d$u
-  kill <- !is.na(d$bio) & runif(n) < pmin(pcd, 0.95)
-  d[kill, tdeath := pmin(tdeath, pmax(bio, 0), na.rm = TRUE)]
-  .GlobalEnv$.Random.seed <- rs
+  kill <- !is.na(d$bio) & d$bio >= 0 & ki < pmin(pcd, 0.95)
+  d[kill, tdeath := pmin(tdeath, bio, na.rm = TRUE)]
 
   # sc scales the baseline so the rate over test-negative person-time matches
   # the published 8.766 per 1000 person-years, on a sample of 200,000 persons.
@@ -172,36 +253,39 @@ sim <- function(seed, cfg = CFG) {
   # The hazard has no infection multiplier, and it is step_mult times higher
   # after the step. The expected first events equal the rate times the expected
   # time at risk, which also stops at the first event. GL16 integrates it.
-  sset <- sample(seq_len(n), 200000L)
-  tcal <- pmin(ifelse(is.na(d$ana), d$fu, d$ana), d$tdeath, na.rm = TRUE)
-  ltot <- sum(lam)
-  k0 <- ltot *
-    d$u[sset] *
-    (DAY_YR / b) *
-    exp(b * (d$age0[sset] - cfg$age_median))
-  rt <- cfg$rate_true / 1000 / DAY_YR
-  beta <- b / DAY_YR
-  s_end <- tcal[sset]
-  s_day <- pmin(pmax(cfg$step_day - d$entry[sset], 0), s_end)
-  # The probability W of a first event by span, and the expected time at risk
-  # to span, from a start with hazard constant K.
-  tar <- function(K, span) {
-    W <- -expm1(-K * expm1(beta * span))
-    tm <- W *
-      as.vector((1 / (K - log1p(-outer(W, GL16$t)))) %*% GL16$g) /
-      beta
-    return(list(W = W, tm = tm))
+  # A given sc skips the calibration.
+  if (is.null(sc)) {
+    sset <- sample(seq_len(n), 200000L)
+    tcal <- pmin(ifelse(is.na(d$ana), d$fu, d$ana), d$tdeath, na.rm = TRUE)
+    ltot <- sum(lam)
+    k0 <- ltot *
+      d$u[sset] *
+      (DAY_YR / b) *
+      exp(b * (d$age0[sset] - cfg$age_median))
+    rt <- cfg$rate_true / 1000 / DAY_YR
+    beta <- b / DAY_YR
+    s_end <- tcal[sset]
+    s_day <- pmin(pmax(cfg$step_day - d$entry[sset], 0), s_end)
+    # The probability W of a first event by span, and the expected time at risk
+    # to span, from a start with hazard constant K.
+    tar <- function(K, span) {
+      W <- -expm1(-K * expm1(beta * span))
+      tm <- W *
+        as.vector((1 / (K - log1p(-outer(W, GL16$t)))) %*% GL16$g) /
+        beta
+      return(list(W = W, tm = tm))
+    }
+    calib <- function(x) {
+      K <- x * k0
+      p1 <- tar(K, s_day)
+      s1 <- exp(-K * expm1(beta * s_day))
+      p2 <- tar(cfg$step_mult * K * exp(beta * s_day), s_end - s_day)
+      return(
+        sum(p1$W) + sum(s1 * p2$W) - rt * (sum(p1$tm) + sum(s1 * p2$tm))
+      )
+    }
+    sc <- stats::uniroot(calib, interval = c(0.1, 100), extendInt = "yes")$root
   }
-  calib <- function(x) {
-    K <- x * k0
-    p1 <- tar(K, s_day)
-    s1 <- exp(-K * expm1(beta * s_day))
-    p2 <- tar(cfg$step_mult * K * exp(beta * s_day), s_end - s_day)
-    return(
-      sum(p1$W) + sum(s1 * p2$W) - rt * (sum(p1$tm) + sum(s1 * p2$tm))
-    )
-  }
-  sc <- stats::uniroot(calib, interval = c(0.1, 100), extendInt = "yes")$root
   cmult <- matrix(
     ifelse(as.vector(d$entry + mid) >= cfg$step_day, cfg$step_mult, 1),
     nrow(mid),
@@ -235,6 +319,47 @@ sim <- function(seed, cfg = CFG) {
     d[, (names(lam)[k]) := tev]
   }
   return(list(d = d, s0 = s0, win = win, sc = sc))
+}
+
+# The first CVD diagnosis of each person, and whether it comes before death
+# and the end of follow-up.
+first_cvd <- function(d, cfg = CFG) {
+  f <- do.call(pmin, c(d[, names(cfg$rate), with = FALSE], na.rm = TRUE))
+  return(data.table(
+    seen = d$seen,
+    bio = d$bio,
+    ana = d$ana,
+    fu = d$fu,
+    f = f,
+    ev = !is.na(f) & f <= pmin(d$fu, d$tdeath, na.rm = TRUE)
+  ))
+}
+
+# The excess of one seed: x1 is first_cvd() with infection, and x0 the same
+# persons without it. It returns the excess persons with a CVD diagnosis by
+# infection status with infection, and the risk of a first diagnosis in the
+# 12 months after a recorded infection, among recorded persons followed that
+# long, with and without infection.
+excess <- function(x1, x0) {
+  nv <- which(is.na(x1$bio))
+  stopifnot(identical(x1[nv, .(f, ev)], x0[nv, .(f, ev)]))
+  grp <- fifelse(
+    x1$seen,
+    "recorded",
+    fifelse(is.na(x1$bio), "never", "unrecorded")
+  )
+  tot <- data.table(grp = grp, e = x1$ev - x0$ev)[,
+    .(excess = sum(e)),
+    keyby = grp
+  ]
+  tt <- DAY_YR
+  j <- which(x1$seen & x1$ana + tt <= x1$fu)
+  a <- x1$ana[j]
+  risk <- function(x) mean(x$ev[j] & x$f[j] > a & x$f[j] <= a + tt)
+  return(list(
+    tot = tot,
+    risk = c(n = length(j), with = risk(x1), without = risk(x0))
+  ))
 }
 
 # The paper's analysis. Follow-up stops at the first cardiovascular event of
@@ -302,6 +427,44 @@ analyse <- function(z, seed, cfg = CFG) {
     retval[[o]] <- merge(r, ew, by = "window")[ew >= 5L]
   }
   return(rbindlist(retval)[, seed := seed][])
+}
+
+# The estimates of all seeds against the published ones. Per outcome and
+# window: mean m and SD s of the log HR over the k seeds. The 95% prediction
+# interval of one study's estimate is exp(m +- qt(0.975, k - 1) * s * sqrt(1 +
+# 1/k)). Fewer than 6 seeds give no interval. Per seed and window, lg is the
+# mean log HR over the outcomes with an estimate. gm is its mean over the
+# seeds, exponentiated. p is a one-sample t-test of lg over the seeds against
+# the log geometric mean of the published HRs, which it treats as fixed. So p
+# reflects Monte Carlo error only. sig counts, per seed, the outcomes whose 95%
+# CI at 12 months or more lies below 1.
+compare_pub <- function(est, cfg = CFG) {
+  ow <- est[,
+    .(m = mean(log(hr)), s = sd(log(hr)), k = .N),
+    keyby = .(outcome, window)
+  ]
+  ow <- ow[cfg$pub, on = .(outcome, window)]
+  ow[, true := cfg$tm[cbind(outcome, colnames(cfg$tm)[window])]]
+  ow[, h := qt(0.975, k - 1) * s * sqrt(1 + 1 / k)]
+  ow[, `:=`(l95 = exp(m - h), u95 = exp(m + h))]
+  ow[k < 6L, c("l95", "u95") := NA_real_]
+  ow[, pub_in_pi := pub >= l95 & pub <= u95]
+  lg <- est[, .(lg = mean(log(hr))), keyby = .(window, seed)]
+  lg <- lg[cfg$pub[, .(pub_lg = mean(log(pub))), keyby = window], on = "window"]
+  pooled <- lg[,
+    .(
+      gm = exp(mean(lg)),
+      pub = exp(pub_lg[1]),
+      p = stats::t.test(lg, mu = pub_lg[1])$p.value
+    ),
+    keyby = window
+  ]
+  sig <- est[
+    window == 5L,
+    .(n = sum(exp(log(hr) + 1.96 * se) < 1)),
+    keyby = seed
+  ]
+  return(list(ow = ow, pooled = pooled, sig = sig))
 }
 
 # The cohort statistics of one seed. Every seed gives the sums behind the
@@ -387,8 +550,11 @@ describe <- function(z, seed, cfg = CFG) {
     keyby = ag
   ]
 
-  # Infections by calendar month, recorded or not.
-  i <- which(!is.na(d$inf_cal))
+  # Infections by calendar month, recorded or not. An infection counts only
+  # if it comes before death, or at death when it kills.
+  ok <- !is.na(d$inf_cal) &
+    (is.na(d$tdeath) | (!is.na(d$bio) & d$bio <= d$tdeath))
+  i <- which(ok)
   x <- d$inf_cal[i]
   s <- d$seen[i]
   m <- findInterval(x, MON_DAY)
@@ -404,12 +570,11 @@ describe <- function(z, seed, cfg = CFG) {
         c(0.25, 0.5, 0.75),
         names = FALSE
       ),
-      rec_n = sum(d$seen),
-      rec_pre_entry = sum(d$seen & d$inf_cal < d$entry),
+      rec_n = sum(d$seen & ok),
+      rec_pre_entry = sum(d$seen & ok & d$inf_cal < d$entry),
       cvd_n = sum(ev),
       cvd_pos_n = sum(wev >= 1L),
       erik_n = sum(erik),
-      erik_susc = n - sum(x < ERIK[["lo"]]),
       erik_unrec = mean(!s[erik])
     ),
     age_n = as.vector(table(cut(
