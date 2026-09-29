@@ -15,7 +15,7 @@ Each row is one of the 12 cardiovascular outcomes with the highest baseline rate
 - **Black square and bar:** the published estimate and its 95% CI, from Supplementary Table 1.
 - **Red numbers:** the true hazard ratio, then the true risk difference without death at infection, as extra diagnoses per 100,000 persons with a recorded infection.
 
-The true risk difference in the figures is cumulative. It compares the same persons with and without infection. It is the risk of a first diagnosis of the outcome with infection, less the risk without infection. The risk runs from the start of the analysis clock to the end of the window, and to 24 months for 12 months or more. The analysis clock starts at the infection date, or at entry for an infection before entry.
+The true risk difference in the figures is cumulative. It compares the same persons with and without infection. It is the risk of a first diagnosis of the outcome with infection, less the risk without infection. The risk runs from the start of the analysis clock to the end of the window, and over 0-24 months for 12 months or more. The analysis clock starts at the infection date, or at entry for an infection before entry.
 
 The base is the persons with a recorded infection whose study period reaches the end of the window. For 12 months or more, that end is 24 months after the start. A death before the diagnosis counts as no diagnosis. A diagnosis of another outcome does not stop the follow-up. The value is the mean over the 10 cohorts. `Run.R` prints it in percentage points (pp), and 1 pp is 1,000 per 100,000.
 
@@ -49,9 +49,9 @@ At 12 months or more, the true hazard ratio is 1.03 to 1.26 for 7 of the 12 outc
 
 The counterfactual also gives the risk of a first CVD diagnosis in the 12 months after a recorded infection. It is 0.536% with infection and 0.486% without. The difference is 0.051 percentage points. The base is 665,687 persons per cohort with a recorded infection. Their study period runs at least 12 months past the start of their analysis clock. A death in those 12 months counts as no diagnosis.
 
-The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column gives the true risk difference to 24 months without death at infection, on a base of 101,256 persons per cohort. It runs from 0.7 extra diagnoses per 100,000 for heart failure and cerebrovascular hemorrhage to 29 for arrhythmias.
+The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column gives the true risk difference over 0-24 months without death at infection, on a base of 101,256 persons per cohort. It runs from 0.7 extra diagnoses per 100,000 for heart failure and cerebrovascular hemorrhage to 28.8 for arrhythmias.
 
-Without death at infection, none of the 60 cumulative risk differences, over 12 outcomes and 5 windows, is below 0. None of the 600 values of the 10 single cohorts is below 0. This follows from the model: every true hazard ratio is at least 1, and the two arms share the event thresholds and the death times. So infection can only make a diagnosis earlier. With death at infection, the risk difference to 24 months is below 0 for 4 of the 12 outcomes, and 0.00000 pp for heart failure.
+Without death at infection, none of the 60 cumulative risk differences, over 12 outcomes and 5 windows, is below 0. None of the 600 values of the 10 single cohorts is below 0. This follows from the model: every true hazard ratio is at least 1, and the two arms share the event thresholds and the death times. So infection can only make a diagnosis earlier. With death at infection, the risk difference over 0-24 months is below 0 for 4 of the 12 outcomes, and 0.00000 pp for heart failure.
 
 ## The model
 

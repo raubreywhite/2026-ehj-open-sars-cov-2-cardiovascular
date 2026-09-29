@@ -787,27 +787,54 @@ saveRDS(
 # Rows sorted by the published HR, the highest at the top. The figures give the
 # cumulative risk difference without death at infection, as extra diagnoses
 # per 100,000 persons with a recorded infection (pp x 1000). rd_lab() rounds it
-# to 2 significant figures and at most 1 decimal. At 12 months or more it runs
-# to 24 months.
+# to 1 decimal. At 12 months or more it runs over 0-24 months.
 rd_lab <- function(x) {
-  x <- round(signif(1000 * x, 2), 1)
+  x <- round(1000 * x, 1)
   x[x == 0] <- 0
-  return(ifelse(abs(x) >= 10, sprintf("%.0f", x), sprintf("%.1f", x)))
+  return(sprintf("%.1f", x))
 }
 d12[rdpn[window == 5L], on = "outcome", rd := i.cum]
 ny <- nrow(d12)
 bands <- data.table(y = seq(2L, ny, by = 2L))
 q <- ggplot(d12)
 q <- q + forest_layers(pretty_name(d12[order(y), outcome]), bands)
-q <- q + scale_fill_manual(NULL, values = "#1b9e77")
+q <- q + scale_fill_manual(NULL, values = "#82cab4")
 q <- q + scale_x_log10(breaks = c(0.5, 0.71, 1, 1.41))
-q <- q + coord_cartesian(xlim = c(0.38, 1.6), ylim = c(0.5, ny + 0.5))
-q <- q + labs(x = "Hazard ratio at 12 months or more (log scale)", y = NULL)
-q <- q + theme_forest() + theme(plot.margin = margin(5, 2, 5, 5))
+q <- q +
+  coord_cartesian(xlim = c(0.38, 1.6), ylim = c(-1.5, ny + 0.5))
+# The direction of the effect: an arrow from 1 to each side, inside the panel
+# under the last outcome, with its label beneath.
+q <- q +
+  annotate(
+    "segment",
+    x = c(1 / 1.03, 1.03),
+    xend = c(0.55, 1.5),
+    y = 0.25,
+    yend = 0.25,
+    arrow = grid::arrow(length = unit(1.5, "mm"), type = "closed"),
+    linewidth = 0.5
+  )
+q <- q +
+  annotate(
+    "label",
+    x = c(1 / 1.03, 1.03),
+    hjust = c(1, 0),
+    y = -0.8,
+    label = c("SARS-CoV-2\nprotective", "SARS-CoV-2\nharmful"),
+    lineheight = 0.9,
+    size = 2.8,
+    fill = "white",
+    linewidth = 0,
+    label.padding = unit(1, "pt")
+  )
+q <- q + labs(x = "Hazard ratio at 12 months or more", y = NULL)
+q <- q +
+  theme_forest() +
+  theme(plot.margin = margin(5, 2, 5, 5))
 t <- ggplot(
   rbind(
-    d12[, .(y, value = sprintf("%.2f", true), x = 0.17)],
-    d12[, .(y, value = rd_lab(rd), x = 0.66)]
+    d12[, .(y, value = sprintf("%.2f", true), x = 0.16)],
+    d12[, .(y, value = rd_lab(rd), x = 0.69)]
   ),
   aes(x = x, y = y, label = value)
 )
@@ -822,16 +849,16 @@ t <- t + geom_text(size = 2.9)
 t <- t +
   scale_x_continuous(
     position = "top",
-    breaks = c(0.17, 0.66),
+    breaks = c(0.16, 0.69),
     labels = c(
-      "True\nhazard\nratio",
-      "Extra diagnoses\nper 100,000,\nto 24 months,\nwithout death\nat infection"
+      "True HR,\n12 months\nor more",
+      "Extra diagnoses\nper 100,000,\n0-24 months,\nwithout death\nat infection"
     ),
     limits = c(0, 1),
     expand = c(0, 0)
   )
 t <- t + scale_y_continuous(expand = expansion(add = c(0.5, 0.5)))
-t <- t + coord_cartesian(ylim = c(0.5, ny + 0.5))
+t <- t + coord_cartesian(ylim = c(-1.5, ny + 0.5))
 t <- t +
   theme_void(base_size = 9) +
   theme(
@@ -842,7 +869,7 @@ t <- t +
     ),
     plot.margin = margin(5, 5, 5, 0)
   )
-qq <- patchwork::wrap_plots(q, t, widths = c(1, 0.52)) +
+qq <- patchwork::wrap_plots(q, t, widths = c(1, 0.6)) +
   patchwork::plot_layout(guides = "collect") &
   theme(
     legend.position = "bottom",
@@ -886,7 +913,7 @@ q <- q + geom_blank(data = blank, aes(x = x))
 q <- q +
   scale_fill_manual(
     NULL,
-    values = "#1b9e77",
+    values = "#82cab4",
     labels = paste(strwrap(LAB_SIM, 40), collapse = "\n")
   )
 # The true HR and the risk difference to the end of the window are written at
@@ -904,9 +931,17 @@ q <- q +
     data = data.table(
       window_pretty = factor(WL, levels = WL),
       lab = paste0(
-        "True HR | extra per 100,000 to ",
-        c("day 1", "day 30", "6 months", "12 months", "24 months"),
-        ",\nwithout death at infection"
+        "True HR, ",
+        c(
+          "day 0-1",
+          "day 2 to <1 month",
+          "1 to 5 months",
+          "6 to 11 months",
+          "12 months or more"
+        ),
+        " | extra per 100,000\n",
+        c("day 0-1", "day 0-30", "0-6 months", "0-12 months", "0-24 months"),
+        ", without death at infection"
       )
     ),
     aes(x = Inf, y = ny + 1.2, label = lab),
@@ -939,7 +974,7 @@ q <- q +
   )
 q <- q +
   labs(
-    x = "Hazard ratio (log scale)",
+    x = "Hazard ratio",
     y = NULL,
     title = "Assumed true, biased and published hazard ratios"
   )

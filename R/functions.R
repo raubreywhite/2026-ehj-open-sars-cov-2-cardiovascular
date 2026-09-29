@@ -660,7 +660,7 @@ forest_layers <- function(labels, bands) {
         ymax = y + 0.2,
         fill = LAB_SIM
       ),
-      alpha = 0.55,
+      alpha = 1,
       na.rm = TRUE
     ),
     geom_errorbar(
