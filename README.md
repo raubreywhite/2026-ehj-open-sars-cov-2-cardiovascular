@@ -26,7 +26,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Pulmonary embolism
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 22.75 | 11.03-21.70 | 16.10 (11.00-23.50) | 1.5 |
 | Day 2 to \<1 month | 6.48 | 3.83-5.02 | 4.14 (3.57-4.79) | 13.0 |
@@ -36,7 +36,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Venous embolism
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 4.27 | 1.59-5.44 | 2.67 (1.48-4.84) | 0.4 |
 | Day 2 to \<1 month | 1.69 | 1.20-1.69 | 1.42 (1.22-1.66) | 3.3 |
@@ -46,7 +46,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Inflammatory heart disease
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 5.52 | none | 4.90 (2.04-11.80) | 0.1 |
 | Day 2 to \<1 month | 1.37 | 0.72-1.93 | 1.08 (0.76-1.54) | 0.4 |
@@ -56,7 +56,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Conduction disorders
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 11.13 | 5.40-17.86 | 8.85 (5.01-15.60) | 0.5 |
 | Day 2 to \<1 month | 1.16 | 0.69-1.65 | 0.76 (0.53-1.09) | 0.8 |
@@ -66,7 +66,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Arrhythmias
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 9.17 | 5.56-9.95 | 7.67 (6.17-9.53) | 3.1 |
 | Day 2 to \<1 month | 1.38 | 1.10-1.39 | 1.19 (1.07-1.32) | 7.5 |
@@ -76,7 +76,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Ischemic heart disease
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 7.26 | 4.54-7.77 | 5.84 (4.21-8.11) | 1.5 |
 | Day 2 to \<1 month | 1.15 | 0.94-1.26 | 1.01 (0.87-1.17) | 2.4 |
@@ -86,7 +86,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Valve disorders
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 3.22 | 1.12-6.04 | 2.51 (1.20-5.28) | 0.3 |
 | Day 2 to \<1 month | 1.04 | 0.85-1.23 | 1.03 (0.83-1.28) | 0.4 |
@@ -96,7 +96,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Cerebrovascular hemorrhage
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 7.50 | 3.59-10.41 | 6.93 (3.45-13.90) | 0.3 |
 | Day 2 to \<1 month | 1.28 | 0.85-1.78 | 1.19 (0.87-1.63) | 0.6 |
@@ -106,7 +106,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Other cerebrovascular
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 11.38 | 5.41-12.32 | 8.75 (5.95-12.90) | 1.1 |
 | Day 2 to \<1 month | 1.27 | 0.82-1.51 | 1.15 (0.94-1.40) | 2.0 |
@@ -116,7 +116,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Cerebral infarction
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 10.35 | 6.04-12.13 | 8.29 (5.97-11.50) | 1.6 |
 | Day 2 to \<1 month | 1.27 | 1.04-1.45 | 1.16 (0.99-1.37) | 3.2 |
@@ -126,7 +126,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Aneurysm dissection
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 2.98 | none | 3.85 (1.83-8.09) | 0.2 |
 | Day 2 to \<1 month | 1.01 | 0.72-1.15 | 0.90 (0.68-1.21) | 0.2 |
@@ -136,7 +136,7 @@ The extra diagnoses compare the same persons with and without infection. They ar
 
 #### Heart failure
 
-| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Cumulative extra per 100,000 |
 |:---|---:|---:|---:|---:|
 | Day 0-1 | 16.21 | 7.85-20.89 | 10.80 (6.51-18.00) | 0.8 |
 | Day 2 to \<1 month | 1.11 | 0.61-1.36 | 1.00 (0.73-1.37) | 0.9 |

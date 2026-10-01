@@ -77,7 +77,7 @@ for (o in ord) {
       "True HR" = f2(true),
       "Simulated, 95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
       "Published HR (95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
-      "Extra per 100,000" = rd_txt
+      "Cumulative extra per 100,000" = rd_txt
     )],
     format = "pipe",
     align = "lrrrr"
