@@ -280,11 +280,10 @@ cv <- as.numeric(unlist(fa[dx == "Hjerte- og karsykdommer (I00-I99)", ..yc]))
 
 Hypertension (I10-I15) is in the FHI all-CVD group but in no simulated outcome. From 2016 to 2025 it has `r f0(min(ht))` to `r f0(max(ht))` patients per year, `r pct(min(ht / cv), 0)` to `r pct(max(ht / cv), 0)` of the all-CVD patients.
 
-The FHI table has 6 more groups. `Norway.R` does not use them:
+The FHI table has 5 more diagnosis groups. `Norway.R` does not use them:
 
 | FHI group | FHI codes | Closest Boyd group | Why it is not used |
 |---|---|---|---|
-| All patients in the table | the groups below and above | none | It is not a diagnosis group. |
 | Hypertension | I10-I15 | none | No Boyd group contains it, so the simulation has no effect for it. |
 | Angina pectoris | I20 | Ischemic heart disease: I20-I25, except I25.2-I25.4 | It is part of ischemic heart disease, which is used. The simulation has no separate effect for it. |
 | Acute myocardial infarction | I21, I22 | Myocardial infarction (I21), a subgroup of ischemic heart disease | The simulation has no separate effect for it. It is part of ischemic heart disease, which is used. |

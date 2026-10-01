@@ -266,11 +266,10 @@ The simulated outcomes follow the ICD-10 groups of Boyd et al. (Supplementary M
 
 Hypertension (I10-I15) is in the FHI all-CVD group but in no simulated outcome. From 2016 to 2025 it has 53,121 to 64,935 patients per year, 19% to 25% of the all-CVD patients.
 
-The FHI table has 6 more groups. `Norway.R` does not use them:
+The FHI table has 5 more diagnosis groups. `Norway.R` does not use them:
 
 | FHI group | FHI codes | Closest Boyd group | Why it is not used |
 |----|----|----|----|
-| All patients in the table | the groups below and above | none | It is not a diagnosis group. |
 | Hypertension | I10-I15 | none | No Boyd group contains it, so the simulation has no effect for it. |
 | Angina pectoris | I20 | Ischemic heart disease: I20-I25, except I25.2-I25.4 | It is part of ischemic heart disease, which is used. The simulation has no separate effect for it. |
 | Acute myocardial infarction | I21, I22 | Myocardial infarction (I21), a subgroup of ischemic heart disease | The simulation has no separate effect for it. It is part of ischemic heart disease, which is used. |
