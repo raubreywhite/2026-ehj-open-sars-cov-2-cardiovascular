@@ -177,30 +177,46 @@ The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows 
 
 `Bias.R` switches four sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does:
 
-- **Unmeasured risk and selection:** unrecorded differences in cardiovascular risk between persons of the same age (shared frailty), together with selection into early infection. Off means no frailty and no selection.
+- **Stopping at the first CVD diagnosis:** the paper stops follow-up for every outcome at a person’s first diagnosis in any of the 15 cardiovascular groups. Off means each outcome is followed to its own first diagnosis.
 - **Unrecorded infections:** infections that testing did not record, which leave infected persons in the comparison group.
-- **Death at infection:** it is more probable at older ages and higher frailty, so it removes high-risk infected persons from follow-up.
-- **Censoring:** follow-up of every outcome stops at the first diagnosis in any of the 15 cardiovascular groups. Off means each outcome is followed to its own first diagnosis.
+- **Deaths at infection:** more probable at older ages and higher frailty, so they remove high-risk infected persons from follow-up.
+- **Unmeasured risk and selection:** differences in cardiovascular risk between persons of the same age that the analysis cannot see (frailty), and selection of lower-risk persons into infection before the Omicron wave.
 
-In each window, the gap between the true and the estimated geometric mean of the 12 outcomes, on the log scale, has two parts. The residual is what remains with all four sources off, and comes from the analysis itself. The rest is the sum of the contributions of the four sources. A contribution is a Shapley value: the mean effect of switching that source on, over all orders in which the sources can be switched on. A negative contribution moves the estimate up.
+The figure starts from the paper’s analysis with all four sources off, then adds them one at a time. Each point is the geometric mean of the 12 outcomes over the 10 simulated cohorts.
 
-| Window | True GM | Estimated GM | Gap (log) | Residual (log) | Unmeasured risk and selection | Unrecorded infections | Death at infection | Censoring |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Day 2 to \<1 month | 1.42 | 1.25 | 0.123 | 0.096 | -0.024 | 0.046 | 0.019 | -0.015 |
-| 1 to 5 months | 1.12 | 1.05 | 0.056 | -0.008 | 0.008 | 0.051 | 0.015 | -0.009 |
-| 6 to 11 months | 1.09 | 1.00 | 0.087 | -0.018 | 0.041 | 0.051 | 0.011 | 0.002 |
-| 12 months or more | 1.09 | 0.82 | 0.279 | -0.009 | 0.228 | 0.053 | 0.005 | 0.002 |
+![The estimate as the sources of bias are added one at a time, per window](figures/bias_steps.png)
 
-- **From 12 months,** unmeasured risk with selection gives 82% of the gap, and unrecorded infections 19%.
-- **In months 1 to 11,** unrecorded infections give the largest contribution.
-- **In day 2 to \<1 month,** most of the gap is the residual (0.096 of 0.123).
-- **Censoring** contributes at most 0.015 on the log scale in any window, in both directions. In this simulation, death at infection strengthened the upward effect of censoring on the early estimates.
+| Step | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
+|:---|---:|---:|---:|---:|
+| True | 1.42 | 1.12 | 1.09 | 1.09 |
+| Analysis alone | 1.29 | 1.12 | 1.11 | 1.10 |
+| \+ stop at first CVD | 1.29 | 1.13 | 1.12 | 1.09 |
+| \+ unrecorded infections | 1.23 | 1.06 | 1.06 | 1.03 |
+| \+ deaths at infection | 1.22 | 1.07 | 1.05 | 1.03 |
+| \+ unmeasured risk | 1.29 | 1.07 | 1.02 | 1.00 |
+| \+ selection, 2% | 1.29 | 1.06 | 1.02 | 0.97 |
+| \+ selection, 6% | 1.29 | 1.07 | 1.01 | 0.95 |
+| \+ selection, 10% | 1.25 | 1.06 | 1.00 | 0.92 |
+| \+ selection, 13% | 1.27 | 1.06 | 1.00 | 0.89 |
+| \+ selection, 20% | 1.25 | 1.05 | 1.00 | 0.82 |
+
+- **12 months or more:** the analysis alone gives about the true value (1.10 against 1.09). Unrecorded infections bring it to 1.03, unmeasured risk to 1.00, and selection to 0.82.
+- **1 to 5 and 6 to 11 months:** the largest step is unrecorded infections (to 1.06 and 1.06). The simulation ends at 1.05 and 1.00, against 1.00 and 0.98 published.
+- **Day 2 to \<1 month:** most of the fall happens in the analysis itself, before any source of bias (1.42 to 1.29).
+- **Stopping at the first CVD diagnosis,** added first, changes the estimate by at most 0.3% in any window.
+
+Frailty is the cardiovascular risk that age does not explain. Without selection, persons with a recorded infection before the Omicron wave have 1.9% higher mean frailty than persons with a recorded infection later. Each selection step gives the resulting difference: at 2% lower mean frailty, the estimate at 12 months or more is already below 1.
+
+The order of the steps is a choice. It changes the size of each step, but not the first or last point. The table below does not depend on the order. For each source, it gives the factor by which adding the source multiplies the estimate, as a geometric mean over all orders in which the four sources can be added. This is exp(-phi), where phi is the source’s Shapley contribution on the log scale. Unmeasured risk and selection are added together here.
+
+| Source | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
+|:---|---:|---:|---:|---:|
+| Stopping at the first CVD diagnosis | 1.01 | 1.01 | 1.00 | 1.00 |
+| Unrecorded infections | 0.96 | 0.95 | 0.95 | 0.95 |
+| Deaths at infection | 0.98 | 0.99 | 0.99 | 1.00 |
+| Unmeasured risk and selection | 1.02 | 0.99 | 0.96 | 0.80 |
 
 The decomposition describes the simulated model. It does not measure the sources of bias in the cohort of Boyd et al.
-
-The figure shows how much selection the result needs. Without selection, persons infected before the Omicron wave are 1.9% more frail than persons of the same age infected later, and the geometric mean at 12 months or more is 1.00. When they are 2% less frail, it is 0.97. The main model, 20% less frail, gives 0.82. The published value is 0.82, and the true value 1.09.
-
-![From the true hazard ratios to the estimates, as selection into early infection increases](figures/bias_selection.png)
 
 ## The model
 

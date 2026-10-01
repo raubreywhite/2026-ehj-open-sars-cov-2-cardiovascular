@@ -28,6 +28,9 @@
 # stops the script. With all sources on and censoring, the estimates MUST
 # equal those of Run.R.
 #
+# It draws figures/bias_steps.png: per window, the estimate as the sources
+# are added one at a time.
+#
 # Needs R 4.6 with data.table, ggplot2 and knitr.
 # Run it from the repository root with: Rscript Bias.R
 
@@ -230,6 +233,47 @@ cat(
   "\nSelection: geometric mean at 12 months or more, and how much lower the mean frailty of the pre-Omicron infected is than that of the later infected:\n"
 )
 print(knitr::kable(sel_tab, format = "pipe", digits = 3))
+## Steps ----
+# Real simulated settings, adding one source at a time in a fixed order: the
+# paper's analysis alone (all sources off, not censored), then censoring,
+# unrecorded infections, death at infection, unmeasured risk without
+# selection, and selection of increasing strength. The order is a choice: it
+# changes the size of each step, not the first or last point.
+STEPS <- list(
+  list(lab = "Analysis alone", frail = 0L, unrec = 0L, pf = 0, dai = 0L, cens = 0L),
+  list(lab = "+ stop at first CVD", frail = 0L, unrec = 0L, pf = 0, dai = 0L, cens = 1L),
+  list(lab = "+ unrecorded infections", frail = 0L, unrec = 1L, pf = 0, dai = 0L, cens = 1L),
+  list(lab = "+ deaths at infection", frail = 0L, unrec = 1L, pf = 0, dai = 1L, cens = 1L),
+  list(lab = "+ unmeasured risk", frail = 1L, unrec = 1L, pf = 0, dai = 1L, cens = 1L)
+)
+for (p in BIAS$pf[BIAS$pf > 0]) {
+  STEPS[[length(STEPS) + 1L]] <- list(
+    lab = sprintf("+ selection, %.0f%%", 100 * sel_tab[pf == p, lower]),
+    frail = 1L,
+    unrec = 1L,
+    pf = p,
+    dai = 1L,
+    cens = 1L
+  )
+}
+steps <- rbindlist(lapply(seq_along(STEPS), function(k) {
+  s <- STEPS[[k]]
+  x <- g[
+    frail == s$frail & unrec == s$unrec & abs(pf - s$pf) < 1e-9 & dai == s$dai & cens == s$cens,
+    .(gm = exp(mean(lg)), gm_se = sd(lg) / sqrt(.N), n = .N),
+    keyby = window
+  ]
+  stopifnot(all(x$n == length(CFG$seeds)))
+  return(x[, `:=`(step = s$lab, k = k, n = NULL)])
+}))
+steps <- rbind(
+  true_w[window %in% BIAS$windows, .(window, gm = exp(true_lg), gm_se = 0, step = "True", k = 0L)],
+  steps
+)
+STEP_LEV <- c("True", vapply(STEPS, `[[`, character(1), "lab"))
+cat("\nSteps: geometric mean of the 12 outcomes per window, adding one source at a time:\n")
+print(knitr::kable(dcast(steps, k + step ~ window, value.var = "gm")[order(k)], format = "pipe", digits = 3))
+
 saveRDS(
   list(
     sel_tab = sel_tab,
@@ -237,83 +281,59 @@ saveRDS(
     gm_tab = gm_tab,
     shp = shp,
     tot = tot,
-    true_gm = exp(true_lg)
+    true_gm = exp(true_lg),
+    steps = steps,
+    step_lev = STEP_LEV
   ),
   "results/bias.rds"
 )
 
-## Figure: from the true hazard ratios to the published estimates ----
-# The true value, then the estimate without selection, then with increasing
-# selection. Each estimate carries its 95% Monte Carlo interval over the seeds.
-pd <- rbind(
-  data.table(step = "True", gm = exp(true_lg), gm_se = 0, kind = "true"),
-  sel_tab[, .(
-    step = fifelse(
-      pf == 0,
-      "No selection",
-      sprintf("%.0f%% lower", 100 * lower)
-    ),
-    gm,
-    gm_se,
-    kind = "est"
-  )]
+## Figure: from the true hazard ratios to the estimates, step by step ----
+WLAB <- c(
+  "2" = "Day 2 to <1 month",
+  "3" = "1 to 5 months",
+  "4" = "6 to 11 months",
+  "5" = "12 months or more"
 )
-pd[, step := factor(step, levels = step)]
-pd[, `:=`(lo = gm * exp(-1.96 * gm_se), hi = gm * exp(1.96 * gm_se))]
-pub_gm <- readRDS("results/run.rds")$pooled[window == 5L, pub]
+pd <- copy(steps)
+pd[, `:=`(
+  lo = gm * exp(-1.96 * gm_se),
+  hi = gm * exp(1.96 * gm_se),
+  step = factor(step, levels = STEP_LEV),
+  wl = factor(WLAB[as.character(window)], levels = WLAB),
+  what = fifelse(k == 0L, "True value", "Simulated estimate (95% interval)")
+)]
+pub <- readRDS("results/run.rds")$pooled[window %in% BIAS$windows, .(window, pub)]
+pub[, wl := factor(WLAB[as.character(window)], levels = WLAB)]
 q <- ggplot(pd, aes(x = step, y = gm))
 q <- q + geom_hline(yintercept = 1, colour = "grey40")
-q <- q + geom_hline(yintercept = pub_gm, linetype = "dotted")
+q <- q + geom_hline(data = pub, aes(yintercept = pub, linetype = "Published estimate"))
+q <- q + geom_line(data = pd[k > 0L], aes(group = 1), colour = "#1b9e77", linewidth = 0.7)
+q <- q + geom_pointrange(aes(ymin = lo, ymax = hi, colour = what), size = 0.4)
+q <- q + scale_colour_manual(NULL, values = c("True value" = "#d7191c", "Simulated estimate (95% interval)" = "#1b9e77"))
+q <- q + scale_linetype_manual(NULL, values = c("Published estimate" = "dotted"))
+q <- q + scale_x_discrete(limits = STEP_LEV)
+q <- q + scale_y_continuous(trans = "log2", breaks = function(l) pretty(l, n = 5))
+q <- q + facet_wrap(~wl, ncol = 1, scales = "free_y", axes = "all", axis.labels = "all_y")
+q <- q + labs(x = NULL, y = "Hazard ratio (geometric mean of 12 outcomes)")
 q <- q +
-  annotate(
-    "text",
-    x = pd$step[1],
-    y = pub_gm,
-    label = sprintf("Published %.2f", pub_gm),
-    hjust = 0,
-    vjust = -0.5,
-    size = 3.5
-  )
-q <- q +
-  geom_line(
-    data = pd[kind == "est"],
-    aes(group = 1),
-    colour = "#1b9e77",
-    linewidth = 0.8
-  )
-q <- q + geom_pointrange(aes(ymin = lo, ymax = hi, colour = kind), size = 0.6)
-q <- q +
-  scale_colour_manual(
-    values = c(true = "#d7191c", est = "#1b9e77"),
-    guide = "none"
-  )
-q <- q +
-  scale_y_continuous(
-    trans = "log2",
-    breaks = c(0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1)
-  )
-q <- q +
-  labs(
-    x = "Unmeasured cardiovascular risk of persons infected before Omicron,\nagainst persons of the same age infected later",
-    y = "Hazard ratio at 12 months or more\n(geometric mean of 12 outcomes)"
-  )
-q <- q +
-  theme_minimal(base_size = 12) +
+  theme_minimal(base_size = 11) +
   theme(
+    legend.position = "bottom",
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank(),
+    axis.text.x = element_text(angle = 35, hjust = 1),
     axis.line = element_line(colour = "black", linewidth = 0.6),
     axis.ticks = element_line(colour = "black", linewidth = 0.6),
     axis.ticks.length = unit(3.5, "pt"),
     axis.text = element_text(colour = "black"),
-    axis.title = element_text(colour = "black"),
-    axis.title.x = element_text(margin = margin(t = 8))
+    axis.title = element_text(colour = "black")
   )
 ggsave(
-  "figures/bias_selection.png",
+  "figures/bias_steps.png",
   q,
-  width = 210,
-  height = 120,
+  width = 190,
+  height = 270,
   units = "mm",
   dpi = 200,
   bg = "white"

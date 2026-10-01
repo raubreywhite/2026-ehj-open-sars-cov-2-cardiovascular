@@ -119,54 +119,66 @@ The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows 
 
 `Bias.R` switches four sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does:
 
-- **Unmeasured risk and selection:** unrecorded differences in cardiovascular risk between persons of the same age (shared frailty), together with selection into early infection. Off means no frailty and no selection.
+- **Stopping at the first CVD diagnosis:** the paper stops follow-up for every outcome at a person's first diagnosis in any of the 15 cardiovascular groups. Off means each outcome is followed to its own first diagnosis.
 - **Unrecorded infections:** infections that testing did not record, which leave infected persons in the comparison group.
-- **Death at infection:** it is more probable at older ages and higher frailty, so it removes high-risk infected persons from follow-up.
-- **Censoring:** follow-up of every outcome stops at the first diagnosis in any of the 15 cardiovascular groups. Off means each outcome is followed to its own first diagnosis.
+- **Deaths at infection:** more probable at older ages and higher frailty, so they remove high-risk infected persons from follow-up.
+- **Unmeasured risk and selection:** differences in cardiovascular risk between persons of the same age that the analysis cannot see (frailty), and selection of lower-risk persons into infection before the Omicron wave.
 
 ```{r}
 bz <- readRDS("results/bias.rds")
-gmt <- bz$gm_tab
-sht <- bz$shp_tab
+stp <- bz$steps
 st <- bz$sel_tab
-SRC_PRETTY <- c(risk = "Unmeasured risk and selection", unrec = "Unrecorded infections", dai = "Death at infection", cens = "Censoring")
-c5 <- sht[window == 5L]
-share5 <- function(x) pct(c5[source == x, phi] / gmt[window == 5L, gap], 0)
+sht <- bz$shp_tab
+sv <- function(w, lab) f2(stp[window == w & step == lab, gm])
+LAST <- tail(bz$step_lev, 1)
 ```
 
-In each window, the gap between the true and the estimated geometric mean of the 12 outcomes, on the log scale, has two parts. The residual is what remains with all four sources off, and comes from the analysis itself. The rest is the sum of the contributions of the four sources. A contribution is a Shapley value: the mean effect of switching that source on, over all orders in which the sources can be switched on. A negative contribution moves the estimate up.
+The figure starts from the paper's analysis with all four sources off, then adds them one at a time. Each point is the geometric mean of the 12 outcomes over the `r length(cfg$seeds)` simulated cohorts.
+
+![The estimate as the sources of bias are added one at a time, per window](figures/bias_steps.png)
 
 ```{r}
-tb <- dcast(sht, window ~ source, value.var = "phi")
-tb <- gmt[tb, on = "window"]
-f3 <- function(x) sprintf("%.3f", x)
+tb <- dcast(stp, k + step ~ window, value.var = "gm")[order(k)]
 knitr::kable(
-  tb[order(window), .(
-    Window = WL[window],
-    "True GM" = f2(true),
-    "Estimated GM" = f2(on),
-    "Gap (log)" = f3(gap),
-    "Residual (log)" = f3(residual),
-    "Unmeasured risk and selection" = f3(risk),
-    "Unrecorded infections" = f3(unrec),
-    "Death at infection" = f3(dai),
-    "Censoring" = f3(cens)
+  tb[, .(
+    Step = step,
+    "Day 2 to <1 month" = f2(`2`),
+    "1 to 5 months" = f2(`3`),
+    "6 to 11 months" = f2(`4`),
+    "12 months or more" = f2(`5`)
   )],
   format = "pipe",
-  align = "lrrrrrrrr"
+  align = "lrrrr"
 )
 ```
 
-- **From 12 months,** unmeasured risk with selection gives `r share5("risk")` of the gap, and unrecorded infections `r share5("unrec")`.
-- **In months 1 to 11,** unrecorded infections give the largest contribution.
-- **In day 2 to <1 month,** most of the gap is the residual (`r f3(gmt[window == 2L, residual])` of `r f3(gmt[window == 2L, gap])`).
-- **Censoring** contributes at most `r f3(max(abs(sht[source == "cens", phi])))` on the log scale in any window, in both directions. In this simulation, death at infection strengthened the upward effect of censoring on the early estimates.
+- **12 months or more:** the analysis alone gives about the true value (`r sv(5, "Analysis alone")` against `r sv(5, "True")`). Unrecorded infections bring it to `r sv(5, "+ unrecorded infections")`, unmeasured risk to `r sv(5, "+ unmeasured risk")`, and selection to `r sv(5, LAST)`.
+- **1 to 5 and 6 to 11 months:** the largest step is unrecorded infections (to `r sv(3, "+ unrecorded infections")` and `r sv(4, "+ unrecorded infections")`). The simulation ends at `r sv(3, LAST)` and `r sv(4, LAST)`, against `r f2(r$pooled[window == 3L, pub])` and `r f2(r$pooled[window == 4L, pub])` published.
+- **Day 2 to <1 month:** most of the fall happens in the analysis itself, before any source of bias (`r sv(2, "True")` to `r sv(2, "Analysis alone")`).
+- **Stopping at the first CVD diagnosis,** added first, changes the estimate by at most `r pct(stp[step %in% c("Analysis alone", "+ stop at first CVD"), .(d = abs(gm[step == "+ stop at first CVD"] / gm[step == "Analysis alone"] - 1)), by = window][, max(d)])` in any window.
+
+Frailty is the cardiovascular risk that age does not explain. Without selection, persons with a recorded infection before the Omicron wave have `r pct(-st[pf == 0, lower])` higher mean frailty than persons with a recorded infection later. Each selection step gives the resulting difference: at `r pct(st[pf == 0.025, lower], 0)` lower mean frailty, the estimate at 12 months or more is already below 1.
+
+The order of the steps is a choice. It changes the size of each step, but not the first or last point. The table below does not depend on the order. For each source, it gives the factor by which adding the source multiplies the estimate, as a geometric mean over all orders in which the four sources can be added. This is exp(-phi), where phi is the source's Shapley contribution on the log scale. Unmeasured risk and selection are added together here.
+
+```{r}
+mt <- dcast(sht, source ~ window, value.var = "phi")
+mt <- mt[match(c("cens", "unrec", "dai", "risk"), source)]
+lab <- c(cens = "Stopping at the first CVD diagnosis", unrec = "Unrecorded infections", dai = "Deaths at infection", risk = "Unmeasured risk and selection")
+knitr::kable(
+  mt[, .(
+    Source = lab[source],
+    "Day 2 to <1 month" = f2(exp(-`2`)),
+    "1 to 5 months" = f2(exp(-`3`)),
+    "6 to 11 months" = f2(exp(-`4`)),
+    "12 months or more" = f2(exp(-`5`))
+  )],
+  format = "pipe",
+  align = "lrrrr"
+)
+```
 
 The decomposition describes the simulated model. It does not measure the sources of bias in the cohort of Boyd et al.
-
-The figure shows how much selection the result needs. Without selection, persons infected before the Omicron wave are `r pct(-st[pf == 0, lower])` more frail than persons of the same age infected later, and the geometric mean at 12 months or more is `r f2(st[pf == 0, gm])`. When they are `r pct(st[pf == 0.025, lower], 0)` less frail, it is `r f2(st[pf == 0.025, gm])`. The main model, `r pct(st[pf == cfg$pre_frailty, lower], 0)` less frail, gives `r f2(st[pf == cfg$pre_frailty, gm])`. The published value is `r f2(r$pooled[window == 5L, pub])`, and the true value `r f2(bz$true_gm)`.
-
-![From the true hazard ratios to the estimates, as selection into early infection increases](figures/bias_selection.png)
 
 ## The model
 
