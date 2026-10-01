@@ -6,9 +6,8 @@
 #
 # It prints, per outcome at 12 months or more, the assumed true hazard ratio,
 # one study's 95% prediction interval and the published estimate. Over all 5
-# windows it counts the published hazard ratios inside that interval. It does
-# the same without selection into early infection. It gives the absolute
-# excess of CVD diagnoses under the true hazard ratios, and against the same
+# windows it counts the published hazard ratios inside that interval. It gives
+# the absolute excess of CVD diagnoses under the true hazard ratios, and against the same
 # cohorts without infection. Against those cohorts it gives, per outcome and
 # window, the true risk difference after a recorded infection, with and
 # without death at infection. It then compares the seed-1 cohort with the
@@ -203,27 +202,6 @@ CFG$tm <- matrix(c(
   11.133502702879513, 1.1576971449486315, 1.1576971449486315, 1.1576971449486315, 1.1576971449486315,
   3.217387769877089, 1.0388171766645773, 1.0388171766645773, 1.0388171766645773, 1.031029189424833
 ), 15, byrow = TRUE, dimnames = list(names(CFG$rate), c("day1", "m_lt1", "m_1_5", "m_6_11", "m_ge12")))
-# The setting without selection: pre_frailty 0, with its own true hazard
-# ratios, fitted in the same way at pre_frailty 0. The 3 outcomes that are not
-# fitted keep their row of CFG$tm.
-# fmt: skip
-CFG$tm0 <- matrix(c(
-  7.335333389010038, 1.1029911975960427, 1.01, 1.01, 1.01,
-  10.53410698186012, 1.2499104524170328, 1.01, 1.01, 1.01,
-  7.893063612560377, 1.2615455186249593, 1.01, 1.01, 1.01,
-  10.760370784841275, 1.2897780490855373, 1.053864192346875, 1.053864192346875, 1.01,
-  2.773580494365079, 1.653686207745643, 1.1900986859030511, 1.1900986859030511, 1.01,
-  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
-  22.149574619184754, 6.262487567492464, 1.5311079920349502, 1.1744322729076702, 1.0521536668847633,
-  4.343664467281451, 1.01, 1.01, 1.01, 1.01,
-  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
-  12.300877806361791, 1.011630087158952, 1.01, 1.01, 1.01,
-  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
-  5.614642226915205, 1.1912267898642799, 1.0905667298553436, 1.0905667298553436, 1.0654963830945277,
-  9.386977799329799, 1.3434669690431607, 1.0954643284216492, 1.0954643284216492, 1.01,
-  11.500014317024652, 1.0476379938554057, 1.0476379938554057, 1.0476379938554057, 1.0476379938554057,
-  2.8661403389546654, 1.01, 1.01, 1.01, 1.01
-), 15, byrow = TRUE, dimnames = dimnames(CFG$tm))
 
 ## Analysis ----
 # 5-year age bands, and calendar year split at 1 January 2021, 2022 and 2023.
@@ -410,25 +388,13 @@ rd <- rbindlist(lapply(res, `[[`, "rd"))
 rdn <- rbindlist(lapply(res, `[[`, "rdn"))
 rm(res)
 
-## The setting without selection ----
-CFG0 <- modifyList(CFG, list(pre_frailty = 0, tm = CFG$tm0))
-est0 <- parallel::mclapply(
-  CFG$seeds,
-  function(s) analyse(sim(s, CFG0), s, CFG0),
-  mc.cores = CFG$n_core,
-  mc.preschedule = FALSE
-)
-stopifnot(!vapply(est0, inherits, logical(1), "try-error"))
-est0 <- rbindlist(est0)
-
 # PART 2 -- ANALYSIS ====
 # The prediction intervals, the pooled rows and the count of outcomes with a
-# 95% CI below 1, for the main setting and the setting without selection.
+# 95% CI below 1.
 cp <- compare_pub(est)
 ow <- cp$ow
 pooled <- cp$pooled
 sig <- cp$sig
-cp0 <- compare_pub(est0, CFG0)
 n_sig_pub <- CFG$pub[window == 5L, sum(hi < 1)]
 
 ## The absolute excess ----
@@ -633,19 +599,6 @@ cat(sprintf(
   n_sig_pub
 ))
 cat(sprintf(
-  "\nWithout selection (pre_frailty 0), published HR inside the 95%% prediction interval: %d of %d outcome-windows with an interval\n",
-  sum(cp0$ow$pub_in_pi, na.rm = TRUE),
-  sum(!is.na(cp0$ow$l95))
-))
-kab(cp0$pooled, digits = 4)
-cat(sprintf(
-  "Without selection, 12 months or more: geometric mean %.4f, published %.4f, p = %.2g; outcomes with a 95%% CI below 1: mean %.1f of 12 per cohort\n",
-  cp0$pooled[window == 5L, gm],
-  cp0$pooled[window == 5L, pub],
-  cp0$pooled[window == 5L, p],
-  mean(cp0$sig$n)
-))
-cat(sprintf(
   "\nAbsolute excess, (true HR - 1) times the test-negative rates: %.1f per 100,000 person-years in months 1-11, %.1f from month 12. Over the %s published person-years after month 1: %.1f diagnoses, %.2f%% of %s\n",
   100 * sum(xr[1:2] * xpy[1:2]) / sum(xpy[1:2]),
   100 * xr[[3]],
@@ -775,10 +728,28 @@ saveRDS(
     sig = sig,
     sel = sel,
     desc = v,
-    est0 = est0,
     excess = exc,
     rd = rd,
-    rdn = rdn
+    rdn = rdn,
+    rdp = rdp,
+    rdpn = rdpn,
+    xr = xr,
+    xpy = xpy,
+    xt = xt,
+    xk = xk,
+    sel_ratio = sel_ratio,
+    cmp = cmp,
+    age_cmp = age_cmp,
+    py_cmp = py_cmp,
+    fu_cmp = fu_cmp,
+    rt = rt,
+    inf_age = inf_age,
+    mon = mon,
+    n_sig_pub = n_sig_pub,
+    cfg = CFG,
+    paper = PAPER,
+    pub_py = PUB_PY,
+    pub_ev7 = PUB_EV7
   ),
   "results/run.rds"
 )
@@ -903,7 +874,6 @@ WL <- c(
 ord <- ow[window == 5L][order(true, pub), outcome]
 ow[, y := match(outcome, ord)]
 ow[, window_pretty := factor(WL[window], levels = WL)]
-ow[rdpn, on = .(outcome, window), rd := i.cum]
 blank <- CJ(window = 3:5, x = c(0.45, 1.6))[,
   window_pretty := factor(WL[window], levels = WL)
 ]
@@ -916,54 +886,16 @@ q <- q +
     values = "#82cab4",
     labels = paste(strwrap(LAB_SIM, 40), collapse = "\n")
   )
-# The true HR and the risk difference to the end of the window are written at
-# the right edge of each panel.
-q <- q +
-  geom_text(
-    aes(x = Inf, y = y, label = sprintf("%.2f | %s", true, rd_lab(rd))),
-    hjust = 1.15,
-    size = 2.6,
-    colour = "#d7191c"
-  )
-# The header of each panel sits on white, over the grid and the line at 1.
-q <- q +
-  geom_label(
-    data = data.table(
-      window_pretty = factor(WL, levels = WL),
-      lab = paste0(
-        "True HR, ",
-        c(
-          "day 0-1",
-          "day 2 to <1 month",
-          "1 to 5 months",
-          "6 to 11 months",
-          "12 months or more"
-        ),
-        " | extra per 100,000\n",
-        c("day 0-1", "day 0-30", "0-6 months", "0-12 months", "0-24 months"),
-        ", without death at infection"
-      )
-    ),
-    aes(x = Inf, y = ny + 1.2, label = lab),
-    inherit.aes = FALSE,
-    fill = "white",
-    linewidth = 0,
-    label.padding = unit(1, "pt"),
-    hjust = 1.1,
-    size = 2.6,
-    fontface = "bold",
-    colour = "#d7191c"
-  )
-# The month panels keep the breaks 0.71 and 1.41 while their range, with the
-# room for the labels, stays below 8.
+# The month panels keep the breaks 0.71 and 1.41 while their range stays
+# below 3.
 q <- q +
   scale_x_log10(
     breaks = function(l) {
-      if (max(l) > 8) c(0.5, 1, 2, 4, 8, 16, 32) else c(0.5, 0.71, 1, 1.41)
+      if (max(l) > 3) c(0.5, 1, 2, 4, 8, 16, 32) else c(0.5, 0.71, 1, 1.41)
     },
-    expand = expansion(mult = c(0.04, 0.55))
+    expand = expansion(mult = 0.04)
   )
-q <- q + coord_cartesian(ylim = c(0.5, ny + 1.8), clip = "off")
+q <- q + coord_cartesian(ylim = c(0.5, ny + 0.5))
 q <- q +
   facet_wrap(
     ~window_pretty,
