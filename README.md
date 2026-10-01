@@ -4,7 +4,7 @@
 
 Boyd et al. 2026, “SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity” (EHJ Open, doi:10.1093/ehjopen/oeag121), report hazard ratios below 1 for most cardiovascular outcomes from 12 months after infection. Taken as causal, these estimates mean that infection protects against later cardiovascular disease. This repository holds the simulation behind our letter on that paper. In the simulation, infection increases cardiovascular risk, and an approximation of the study design still gives the published estimates.
 
-`Run.R` simulates 10 cohorts of 4,508,489 synthetic persons, one per member of the paper’s cardiovascular cohort. It analyses each cohort as the paper does, and compares the estimates with the published ones. `Norway.R`, a supplement, compares the result with Norwegian national data. `Bias.R` shows what each source of bias contributes. `README.qmd` reads every result in this README from `results/run.rds`, `results/bias.rds` and `results/norway.rds`.
+`Run.R` simulates 10 cohorts of 4,508,489 synthetic persons, one per member of the paper’s cardiovascular cohort. It analyses each cohort as the paper does, and compares the estimates with the published ones. `Norway.R`, a supplement, compares the result with Norwegian national data. `Bias.R` shows what each source of bias contributes. `Illustrations.R` draws four small examples of how each source of bias works. `README.qmd` reads every result in this README from the files that these scripts save in `results/`.
 
 The sections are:
 
@@ -175,21 +175,40 @@ The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows 
 
 ## Why the estimates fall below 1
 
-`Bias.R` switches four sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does:
+### How each source of bias works
 
-- **Stopping at the first CVD diagnosis:** the paper stops follow-up for every outcome at a person’s first diagnosis in any of the 15 cardiovascular groups. Off means each outcome is followed to its own first diagnosis.
-- **Unrecorded infections:** infections that testing did not record, which leave infected persons in the comparison group.
-- **Deaths at infection:** more probable at older ages and higher frailty, so they remove high-risk infected persons from follow-up.
-- **Unmeasured risk and selection:** differences in cardiovascular risk between persons of the same age that the analysis cannot see (frailty), and selection of lower-risk persons into infection before the Omicron wave.
+The four examples below use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person’s risk of a CVD diagnosis by 1.20. Over the follow-up, a high-risk person has a 50% risk and a low-risk person a 5% risk. So the true ratio of risks is 1.20 in every example, and each example gives the ratio of risks that a study would see. This is simpler than the hazard ratios of the simulation, but the mechanisms are the same. `Illustrations.R` draws them.
 
-The figure starts from the paper’s analysis with all four sources off, then adds them one at a time. Each point is the geometric mean of the 12 outcomes over the 10 simulated cohorts.
+**Selection into early infection.** If persons at high risk took more care early in the pandemic, fewer of them were infected before the Omicron wave. Infection raises everyone’s risk, but the infected group starts with fewer high-risk persons. The study would see 0.79.
+
+![Selection into early infection](figures/illustration_selection.png)
+
+**Depletion of susceptibles.** Infection brings diagnoses forward, most of all in high-risk persons. A year later, the infected persons who are still free of CVD include fewer high-risk persons than the comparison group does. The study would see 1.15.
+
+![Depletion of susceptibles](figures/illustration_depletion.png)
+
+**Unrecorded infections.** About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group. In the example, 50 of 150 infections are unrecorded. Their raised risk makes the comparison group look worse. The study would see 1.13.
+
+![Unrecorded infections](figures/illustration_unrecorded.png)
+
+**Deaths at infection.** Infection kills some of the frailest persons before they can be diagnosed. The infected group loses some of its highest-risk persons. The study would see 1.10.
+
+![Deaths at infection](figures/illustration_deaths.png)
+
+**Stopping at the first CVD diagnosis.** The paper stops follow-up for every outcome at a person’s first diagnosis in any of the 15 cardiovascular groups. It removes high-risk persons from both groups, so in the simulation it changes the estimates very little.
+
+### What each source does in the simulation
+
+`Bias.R` switches the four sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does. Unmeasured risk and selection are switched together: frailty is the unmeasured risk, and selection works through it.
+
+The figure starts with the four sources off: the paper’s analysis of a simulated cohort in which all four are switched off. It then adds them one at a time. Each point is the geometric mean of the 12 outcomes over the 10 simulated cohorts. Each bar is the 95% prediction interval for one study of this size.
 
 ![The estimate as the sources of bias are added one at a time, per window](figures/bias_steps.png)
 
 | Step | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
 |:---|---:|---:|---:|---:|
 | True | 1.42 | 1.12 | 1.09 | 1.09 |
-| Analysis alone | 1.29 | 1.12 | 1.11 | 1.10 |
+| Four sources off | 1.29 | 1.12 | 1.11 | 1.10 |
 | \+ stop at first CVD | 1.29 | 1.13 | 1.12 | 1.09 |
 | \+ unrecorded infections | 1.23 | 1.06 | 1.06 | 1.03 |
 | \+ deaths at infection | 1.22 | 1.07 | 1.05 | 1.03 |
@@ -200,9 +219,9 @@ The figure starts from the paper’s analysis with all four sources off, then ad
 | \+ selection, 13% | 1.27 | 1.06 | 1.00 | 0.89 |
 | \+ selection, 20% | 1.25 | 1.05 | 1.00 | 0.82 |
 
-- **12 months or more:** the analysis alone gives about the true value (1.10 against 1.09). Unrecorded infections bring it to 1.03, unmeasured risk to 1.00, and selection to 0.82.
-- **1 to 5 and 6 to 11 months:** the largest step is unrecorded infections (to 1.06 and 1.06). The simulation ends at 1.05 and 1.00, against 1.00 and 0.98 published.
-- **Day 2 to \<1 month:** most of the fall happens in the analysis itself, before any source of bias (1.42 to 1.29).
+- **12 months or more:** with the four sources off, the estimate is about the true value (1.10 against 1.09). Unrecorded infections bring it to 1.03, unmeasured risk to 1.00, and selection to 0.82.
+- **1 to 5 and 6 to 11 months:** the largest step is unrecorded infections (to 1.06 and 1.06). The simulation ends at 1.05 and 1.00, against 1.00 and 0.98 published. At 1 to 5 months the published value is below the prediction interval of the last step (1.01 to 1.10): in that window the published geometric mean lies outside the simulation’s 95% prediction interval.
+- **Day 2 to \<1 month:** most of the fall happens with the four sources off, in the analysis itself (1.42 to 1.29).
 - **Stopping at the first CVD diagnosis,** added first, changes the estimate by at most 0.3% in any window.
 
 Frailty is the cardiovascular risk that age does not explain. Without selection, persons with a recorded infection before the Omicron wave have 1.9% higher mean frailty than persons with a recorded infection later. Each selection step gives the resulting difference: at 2% lower mean frailty, the estimate at 12 months or more is already below 1.
@@ -350,8 +369,9 @@ The NIPH/FHI table has 5 more diagnosis groups. `Norway.R` does not use them:
 
 1.  Run `Rscript Run.R` from the repository root. It needs R 4.6 with data.table, ggplot2, patchwork and knitr.
 2.  Run `Rscript Bias.R` from the repository root. It reads `results/run.rds`, needs R 4.6 with data.table, ggplot2 and knitr, and simulates 130 cohorts.
-3.  Run `Rscript Norway.R` from the repository root. It reads `results/run.rds`, and needs R 4.6 with data.table, ggplot2, knitr, MASS, readxl and csdata.
-4.  Run `quarto render README.qmd` to rebuild this README from `results/run.rds`, `results/bias.rds` and `results/norway.rds`.
+3.  Run `Rscript Illustrations.R` from the repository root. It needs R 4.6 with data.table, ggplot2 and knitr.
+4.  Run `Rscript Norway.R` from the repository root. It reads `results/run.rds`, and needs R 4.6 with data.table, ggplot2, knitr, MASS, readxl and csdata.
+5.  Run `quarto render README.qmd` to rebuild this README from `results/run.rds`, `results/bias.rds`, `results/illustrations.rds` and `results/norway.rds`.
 
 `Run.R` sets the model in its CFG section, and sources the functions in `R/functions.R`. It checks the md5 of the 3 SSI files in `data/ssi/`. It stops if a value in CFG differs from the SSI file that it comes from. It prints its results, draws the 5 figures into `figures/`, and saves the results to `results/run.rds`.
 
@@ -364,13 +384,15 @@ In one measured run with 2 workers, it took 657 seconds on a 20-core Linux machi
 | `Run.R` | The model settings, the published values with their sources, the analysis and the output. |
 | `R/functions.R` | The simulation, the analysis and the cohort description. |
 | `Bias.R` | The contributions of the sources of bias, and the selection that the result needs. |
+| `Illustrations.R` | The four examples with 100 persons per group. |
 | `Norway.R` | The comparison with Norwegian national data. |
 | `README.qmd` | The source of this README. |
 | `data/ssi/` | The SSI source files, byte for byte, with their sources and md5s. |
 | `data/fhi/` | The NIPH/FHI source file, byte for byte, with its source and md5. |
-| `figures/` | The 5 figures that `Run.R` draws, and the 1 each that `Bias.R` and `Norway.R` draw. |
+| `figures/` | The 5 figures that `Run.R` draws, the 4 that `Illustrations.R` draws, and the 1 each that `Bias.R` and `Norway.R` draw. |
 | `results/run.rds` | The results that `Run.R` saves and `README.qmd` reads. |
 | `results/bias.rds` | The results that `Bias.R` saves and `README.qmd` reads. |
+| `results/illustrations.rds` | The results that `Illustrations.R` saves and `README.qmd` reads. |
 | `results/norway.rds` | The results that `Norway.R` saves and `README.qmd` reads. |
 
 ## Licence

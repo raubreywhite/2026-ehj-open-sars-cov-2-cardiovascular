@@ -235,12 +235,12 @@ cat(
 print(knitr::kable(sel_tab, format = "pipe", digits = 3))
 ## Steps ----
 # Real simulated settings, adding one source at a time in a fixed order: the
-# paper's analysis alone (all sources off, not censored), then censoring,
+# four sources off (not censored), then censoring,
 # unrecorded infections, death at infection, unmeasured risk without
 # selection, and selection of increasing strength. The order is a choice: it
 # changes the size of each step, not the first or last point.
 STEPS <- list(
-  list(lab = "Analysis alone", frail = 0L, unrec = 0L, pf = 0, dai = 0L, cens = 0L),
+  list(lab = "Four sources off", frail = 0L, unrec = 0L, pf = 0, dai = 0L, cens = 0L),
   list(lab = "+ stop at first CVD", frail = 0L, unrec = 0L, pf = 0, dai = 0L, cens = 1L),
   list(lab = "+ unrecorded infections", frail = 0L, unrec = 1L, pf = 0, dai = 0L, cens = 1L),
   list(lab = "+ deaths at infection", frail = 0L, unrec = 1L, pf = 0, dai = 1L, cens = 1L),
@@ -260,14 +260,14 @@ steps <- rbindlist(lapply(seq_along(STEPS), function(k) {
   s <- STEPS[[k]]
   x <- g[
     frail == s$frail & unrec == s$unrec & abs(pf - s$pf) < 1e-9 & dai == s$dai & cens == s$cens,
-    .(gm = exp(mean(lg)), gm_se = sd(lg) / sqrt(.N), n = .N),
+    .(gm = exp(mean(lg)), h = stats::qt(0.975, .N - 1) * sd(lg) * sqrt(1 + 1 / .N), n = .N),
     keyby = window
   ]
   stopifnot(all(x$n == length(CFG$seeds)))
   return(x[, `:=`(step = s$lab, k = k, n = NULL)])
 }))
 steps <- rbind(
-  true_w[window %in% BIAS$windows, .(window, gm = exp(true_lg), gm_se = 0, step = "True", k = 0L)],
+  true_w[window %in% BIAS$windows, .(window, gm = exp(true_lg), h = 0, step = "True", k = 0L)],
   steps
 )
 STEP_LEV <- c("True", vapply(STEPS, `[[`, character(1), "lab"))
@@ -289,6 +289,8 @@ saveRDS(
 )
 
 ## Figure: from the true hazard ratios to the estimates, step by step ----
+# Each estimate carries the 95% prediction interval of one study's geometric
+# mean, from the spread over the seeds, as in compare_pub().
 WLAB <- c(
   "2" = "Day 2 to <1 month",
   "3" = "1 to 5 months",
@@ -297,11 +299,11 @@ WLAB <- c(
 )
 pd <- copy(steps)
 pd[, `:=`(
-  lo = gm * exp(-1.96 * gm_se),
-  hi = gm * exp(1.96 * gm_se),
+  lo = gm * exp(-h),
+  hi = gm * exp(h),
   step = factor(step, levels = STEP_LEV),
   wl = factor(WLAB[as.character(window)], levels = WLAB),
-  what = fifelse(k == 0L, "True value", "Simulated estimate (95% interval)")
+  what = fifelse(k == 0L, "True value", "Simulated estimate (95% prediction interval, one study)")
 )]
 pub <- readRDS("results/run.rds")$pooled[window %in% BIAS$windows, .(window, pub)]
 pub[, wl := factor(WLAB[as.character(window)], levels = WLAB)]
@@ -310,7 +312,7 @@ q <- q + geom_hline(yintercept = 1, colour = "grey40")
 q <- q + geom_hline(data = pub, aes(yintercept = pub, linetype = "Published estimate"))
 q <- q + geom_line(data = pd[k > 0L], aes(group = 1), colour = "#1b9e77", linewidth = 0.7)
 q <- q + geom_pointrange(aes(ymin = lo, ymax = hi, colour = what), size = 0.4)
-q <- q + scale_colour_manual(NULL, values = c("True value" = "#d7191c", "Simulated estimate (95% interval)" = "#1b9e77"))
+q <- q + scale_colour_manual(NULL, values = c("True value" = "#d7191c", "Simulated estimate (95% prediction interval, one study)" = "#1b9e77"))
 q <- q + scale_linetype_manual(NULL, values = c("Published estimate" = "dotted"))
 q <- q + scale_x_discrete(limits = STEP_LEV)
 q <- q + scale_y_continuous(trans = "log2", breaks = function(l) pretty(l, n = 5))
