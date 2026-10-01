@@ -4,12 +4,12 @@
 
 Boyd et al. 2026, “SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity” (EHJ Open, doi:10.1093/ehjopen/oeag121), report hazard ratios below 1 for most cardiovascular outcomes from 12 months after infection. Taken as causal, these estimates mean that infection protects against later cardiovascular disease. This repository holds the simulation behind our letter on that paper. In the simulation, infection increases cardiovascular risk, and an approximation of the study design still gives the published estimates.
 
-`Run.R` simulates 10 cohorts of 4,508,489 synthetic persons, one per member of the paper’s cardiovascular cohort. It analyses each cohort as the paper does, and compares the estimates with the published ones. `Norway.R`, a supplement, compares the result with Norwegian national data. `README.qmd` reads every result in this README from `results/run.rds` and `results/norway.rds`.
+`Run.R` simulates 10 cohorts of 4,508,489 synthetic persons, one per member of the paper’s cardiovascular cohort. It analyses each cohort as the paper does, and compares the estimates with the published ones. `Norway.R`, a supplement, compares the result with Norwegian national data. `Bias.R` shows what each source of bias contributes. `README.qmd` reads every result in this README from `results/run.rds`, `results/bias.rds` and `results/norway.rds`.
 
 The sections are:
 
 1.  [Result](#result): the simulated study reproduces the published estimates from harmful true effects, with the values per outcome.
-2.  [Why the estimates fall below 1](#why-the-estimates-fall-below-1): the five sources of bias.
+2.  [Why the estimates fall below 1](#why-the-estimates-fall-below-1): what each source of bias contributes, and how much selection is needed.
 3.  [The model](#the-model) and [how the simulated cohort matches the paper](#how-the-simulated-cohort-matches-the-paper).
 4.  [Assumptions and limits](#assumptions-and-limits).
 5.  [Supplement: Norwegian national data from NIPH/FHI](#supplement-norwegian-national-data-from-niphfhi).
@@ -175,13 +175,32 @@ The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows 
 
 ## Why the estimates fall below 1
 
-In the simulated study, five sources of bias push the estimates below the true hazard ratios:
+`Bias.R` switches four sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does:
 
-- unrecorded differences in cardiovascular risk between persons of the same age (shared frailty);
-- infections that testing did not record, in the comparison group;
-- censoring at the first diagnosis in any of the 15 cardiovascular groups;
-- selection into early infection: persons infected before the Omicron wave have a lower baseline cardiovascular risk;
-- death at infection: it is more probable at older ages and higher frailty, so it removes high-risk infected persons from follow-up.
+- **Unmeasured risk and selection:** unrecorded differences in cardiovascular risk between persons of the same age (shared frailty), together with selection into early infection. Off means no frailty and no selection.
+- **Unrecorded infections:** infections that testing did not record, which leave infected persons in the comparison group.
+- **Death at infection:** it is more probable at older ages and higher frailty, so it removes high-risk infected persons from follow-up.
+- **Censoring:** follow-up of every outcome stops at the first diagnosis in any of the 15 cardiovascular groups. Off means each outcome is followed to its own first diagnosis.
+
+In each window, the gap between the true and the estimated geometric mean of the 12 outcomes, on the log scale, has two parts. The residual is what remains with all four sources off, and comes from the analysis itself. The rest is the sum of the contributions of the four sources. A contribution is a Shapley value: the mean effect of switching that source on, over all orders in which the sources can be switched on. A negative contribution moves the estimate up.
+
+| Window | True GM | Estimated GM | Gap (log) | Residual (log) | Unmeasured risk and selection | Unrecorded infections | Death at infection | Censoring |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Day 2 to \<1 month | 1.42 | 1.25 | 0.123 | 0.096 | -0.024 | 0.046 | 0.019 | -0.015 |
+| 1 to 5 months | 1.12 | 1.05 | 0.056 | -0.008 | 0.008 | 0.051 | 0.015 | -0.009 |
+| 6 to 11 months | 1.09 | 1.00 | 0.087 | -0.018 | 0.041 | 0.051 | 0.011 | 0.002 |
+| 12 months or more | 1.09 | 0.82 | 0.279 | -0.009 | 0.228 | 0.053 | 0.005 | 0.002 |
+
+- **From 12 months,** unmeasured risk with selection gives 82% of the gap, and unrecorded infections 19%.
+- **In months 1 to 11,** unrecorded infections give the largest contribution.
+- **In day 2 to \<1 month,** most of the gap is the residual (0.096 of 0.123).
+- **Censoring** contributes at most 0.015 on the log scale in any window, in both directions. In this simulation, death at infection strengthened the upward effect of censoring on the early estimates.
+
+The decomposition describes the simulated model. It does not measure the sources of bias in the cohort of Boyd et al.
+
+The figure shows how much selection the result needs. Without selection, persons infected before the Omicron wave are 1.9% more frail than persons of the same age infected later, and the geometric mean at 12 months or more is 1.00. When they are 2% less frail, it is 0.97. The main model, 20% less frail, gives 0.82. The published value is 0.82, and the true value 1.09.
+
+![From the true hazard ratios to the estimates, as selection into early infection increases](figures/bias_selection.png)
 
 ## The model
 
@@ -314,8 +333,9 @@ The NIPH/FHI table has 5 more diagnosis groups. `Norway.R` does not use them:
 ## How to run it
 
 1.  Run `Rscript Run.R` from the repository root. It needs R 4.6 with data.table, ggplot2, patchwork and knitr.
-2.  Run `Rscript Norway.R` from the repository root. It reads `results/run.rds`, and needs R 4.6 with data.table, ggplot2, knitr, MASS, readxl and csdata.
-3.  Run `quarto render README.qmd` to rebuild this README from `results/run.rds` and `results/norway.rds`.
+2.  Run `Rscript Bias.R` from the repository root. It reads `results/run.rds`, needs R 4.6 with data.table, ggplot2 and knitr, and simulates 130 cohorts.
+3.  Run `Rscript Norway.R` from the repository root. It reads `results/run.rds`, and needs R 4.6 with data.table, ggplot2, knitr, MASS, readxl and csdata.
+4.  Run `quarto render README.qmd` to rebuild this README from `results/run.rds`, `results/bias.rds` and `results/norway.rds`.
 
 `Run.R` sets the model in its CFG section, and sources the functions in `R/functions.R`. It checks the md5 of the 3 SSI files in `data/ssi/`. It stops if a value in CFG differs from the SSI file that it comes from. It prints its results, draws the 5 figures into `figures/`, and saves the results to `results/run.rds`.
 
@@ -327,12 +347,14 @@ In one measured run with 2 workers, it took 657 seconds on a 20-core Linux machi
 |----|----|
 | `Run.R` | The model settings, the published values with their sources, the analysis and the output. |
 | `R/functions.R` | The simulation, the analysis and the cohort description. |
+| `Bias.R` | The contributions of the sources of bias, and the selection that the result needs. |
 | `Norway.R` | The comparison with Norwegian national data. |
 | `README.qmd` | The source of this README. |
 | `data/ssi/` | The SSI source files, byte for byte, with their sources and md5s. |
 | `data/fhi/` | The NIPH/FHI source file, byte for byte, with its source and md5. |
-| `figures/` | The 5 figures that `Run.R` draws, and the 1 that `Norway.R` draws. |
+| `figures/` | The 5 figures that `Run.R` draws, and the 1 each that `Bias.R` and `Norway.R` draw. |
 | `results/run.rds` | The results that `Run.R` saves and `README.qmd` reads. |
+| `results/bias.rds` | The results that `Bias.R` saves and `README.qmd` reads. |
 | `results/norway.rds` | The results that `Norway.R` saves and `README.qmd` reads. |
 
 ## Licence

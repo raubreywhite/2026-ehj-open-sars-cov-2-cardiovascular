@@ -518,6 +518,67 @@ analyse <- function(z, seed, cfg = CFG) {
   return(rbindlist(retval)[, seed := seed][])
 }
 
+# analyse() with one change: the person-time of each outcome stops at that
+# outcome's own first diagnosis, death or fu, not at the first CVD diagnosis.
+analyse_uncensored <- function(z, seed, cfg = CFG) {
+  d <- z$d
+  sadm <- pmin(d$fu, d$tdeath, na.rm = TRUE)
+  lo <- pmin(z$s0[, -ncol(z$s0)], sadm)
+  hi <- pmin(z$s0[, -1L], sadm)
+  keep <- as.vector(hi - lo > 0)
+  p <- data.table(
+    lo = as.vector(lo)[keep],
+    hi = as.vector(hi)[keep],
+    win = as.vector(z$win)[keep],
+    row = rep(seq_len(nrow(d)), times = ncol(lo))[keep]
+  )
+  a0 <- (d$age0[p$row] + p$lo / DAY_YR) / cfg$ageband
+  a1 <- (d$age0[p$row] + p$hi / DAY_YR) / cfg$ageband
+  nb <- floor(a1 - 1e-9) - floor(a0) + 1L
+  p <- p[rep(seq_len(.N), times = nb)]
+  p[, ab := as.integer(floor(rep(a0, times = nb)) + sequence(nb) - 1L)]
+  p[, s0 := pmax(lo, (ab * cfg$ageband - d$age0[row]) * DAY_YR)]
+  p[, s1 := pmin(hi, ((ab + 1L) * cfg$ageband - d$age0[row]) * DAY_YR)]
+  p <- p[s1 > s0]
+  b0 <- findInterval(d$entry[p$row] + p$s0, CAL_EDGES)
+  b1 <- findInterval(d$entry[p$row] + p$s1 - 1e-9, CAL_EDGES)
+  nc <- as.integer(b1 - b0 + 1L)
+  p <- p[rep(seq_len(.N), times = nc)]
+  p[, cp := as.integer(rep(b0, times = nc) + sequence(nc) - 1L)]
+  p[, q0 := pmax(s0, CAL_EDGES[cp] - d$entry[row])]
+  p[, q1 := pmin(s1, CAL_EDGES[cp + 1L] - d$entry[row])]
+  p <- p[q1 > q0]
+
+  retval <- list()
+  for (o in cfg$outcomes) {
+    tk <- d[[o]]
+    st <- pmin(tk, sadm, na.rm = TRUE)
+    isev <- !is.na(tk) & tk <= sadm
+    po <- p[q0 < st[row]]
+    po[, q1o := pmin(q1, st[row])]
+    po[, py := (q1o - q0) / DAY_YR]
+    po[, ev := as.integer(isev[row] & abs(q1o - st[row]) < 1e-8)]
+    a <- po[, .(py = sum(py), ev = sum(ev)), keyby = .(win, ab, cp)]
+    ew <- a[, .(ew = sum(ev)), keyby = .(window = win)]
+    a[, `:=`(win = factor(win), ab = factor(ab), cp = factor(cp))]
+    fit <- stats::glm(
+      ev ~ win + ab + cp + offset(log(py)),
+      family = stats::poisson(),
+      data = a
+    )
+    cf <- stats::coef(summary(fit))
+    rn <- grep("^win", rownames(cf), value = TRUE)
+    r <- data.table(
+      outcome = o,
+      window = as.integer(sub("^win", "", rn)),
+      hr = exp(cf[rn, "Estimate"]),
+      se = cf[rn, "Std. Error"]
+    )
+    retval[[o]] <- merge(r, ew, by = "window")[ew >= 5L]
+  }
+  return(rbindlist(retval)[, seed := seed][])
+}
+
 # The estimates of all seeds against the published ones. Per outcome and
 # window: mean m and SD s of the log HR over the k seeds. The 95% prediction
 # interval of one study's estimate is exp(m +- qt(0.975, k - 1) * s * sqrt(1 +
