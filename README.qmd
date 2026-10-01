@@ -44,20 +44,19 @@ py <- r$py_cmp
 
 Boyd et al. 2026, "SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity" (EHJ Open, doi:10.1093/ehjopen/oeag121), report hazard ratios below 1 for most cardiovascular outcomes from 12 months after infection. Taken as causal, these estimates mean that infection protects against later cardiovascular disease. This repository holds the simulation behind our letter on that paper. In the simulation, infection increases cardiovascular risk, and an approximation of the study design still gives the published estimates.
 
-`Run.R` simulates `r length(cfg$seeds)` cohorts of `r f0(cfg$n)` synthetic persons, one per member of the paper's cardiovascular cohort. It analyses each cohort as the paper does, and compares the estimates with the published ones. `Norway.R` then checks the result against Norwegian national data. `README.qmd` reads every result in this README from `results/run.rds` and `results/norway.rds`.
+`Run.R` simulates `r length(cfg$seeds)` cohorts of `r f0(cfg$n)` synthetic persons, one per member of the paper's cardiovascular cohort. It analyses each cohort as the paper does, and compares the estimates with the published ones. `Norway.R`, a supplement, compares the result with Norwegian national data. `README.qmd` reads every result in this README from `results/run.rds` and `results/norway.rds`.
 
 The sections are:
 
-1. [Result](#result): the simulated study reproduces the published estimates from harmful true effects.
+1. [Result](#result): the simulated study reproduces the published estimates from harmful true effects, with the values per outcome.
 2. [Why the estimates fall below 1](#why-the-estimates-fall-below-1): the five sources of bias.
 3. [The model](#the-model) and [how the simulated cohort matches the paper](#how-the-simulated-cohort-matches-the-paper).
 4. [Assumptions and limits](#assumptions-and-limits).
-5. [Check against Norwegian national data](#check-against-norwegian-national-data).
-6. [Appendix: values per outcome](#appendix-values-per-outcome).
+5. [Supplement: Norwegian national data from NIPH/FHI](#supplement-norwegian-national-data-from-niphfhi).
 
 ## Result
 
-At 12 months or more, every true hazard ratio in the simulation is at least `r f2(min(w5$true))`, so infection is harmful for all `r nrow(w5)` outcomes. The published estimates are below 1 for `r w5[, sum(pub < 1)]` of them. The simulated study, analysed as the paper does, gives the same low estimates: `r n_in` of the `r n_pi` published point estimates lie inside the 95% prediction interval of the simulated estimates.
+At 12 months or more, every true hazard ratio in the simulation is at least `r f2(min(w5$true))`, so infection is harmful for all `r nrow(w5)` outcomes. The published estimates are below 1 for `r w5[, sum(pub < 1)]` of them. The simulated study, analysed as the paper does, gives the same low estimates: `r n_in` of the `r n_pi` published point estimates (`r pct(n_in / n_pi, 0)`) lie inside the 95% prediction interval of the simulated estimates.
 
 ![Assumed true, biased and published hazard ratios](figures/forest_outcome_truths.png)
 
@@ -67,13 +66,43 @@ Each row is one of the `r nrow(w5)` cardiovascular outcomes with the highest bas
 - **Green band:** the 95% prediction interval (PI) for the estimate of one study of this size. It comes from the `r length(cfg$seeds)` simulated cohorts. A cohort has an estimate only if the window has at least 5 events, and a band needs estimates from at least 6 cohorts.
 - **Black square and bar:** the published estimate and its 95% CI, from Supplementary Table 1.
 
-The [appendix](#appendix-values-per-outcome) gives the values in the figure.
+### Values per outcome
+
+The tables give the values in the figure, one table per outcome, in the order of the figure. The last column is the extra rate of first diagnoses in the window: the rate with infection less the rate without, per 100,000 person-years.
+
+- **Persons:** those with a recorded infection, each simulated with and without infection.
+- **Windows:** measured from the recorded infection, or from entry for an infection before entry, as in the analysis. The window of 12 months or more runs to the end of follow-up.
+- **At risk:** until a first diagnosis of the outcome, death or the end of follow-up. A diagnosis of another outcome does not stop the count.
+- **Death:** infection does not kill in this comparison. Each person has the same death time with and without infection.
+- **Value:** the mean over the `r length(cfg$seeds)` cohorts.
+
+Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall just below 0. This comes from Monte Carlo error, and from infection bringing diagnoses forward, which removes persons from risk in later windows.
+
+```{r}
+#| results: asis
+tab <- ow[, .(window, outcome, true, l95, u95, pub, lo, hi)]
+tab[r$rrp, on = .(outcome, window), rd := i.rd]
+tab[, rd_txt := sprintf("%.1f", round(rd, 1) + 0)]
+for (o in ord) {
+  cat(sprintf("\n#### %s\n\n", pretty_name(o)))
+  print(knitr::kable(
+    tab[outcome == o][order(window), .(
+      Window = WL[window],
+      "True<br>HR" = f2(true),
+      "Simulated<br>95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
+      "Published HR<br>(95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
+      "Extra per 100,000<br>person-years" = rd_txt
+    )],
+    format = "pipe",
+    align = "lrrrr"
+  ))
+  cat("\n")
+}
+```
 
 ### Agreement with the published estimates
 
-The true hazard ratios are fitted to the published estimates. So this agreement shows that the fit worked. It is not an independent test.
-
-- `r n_in` of the `r n_pi` published estimates that have a band lie inside it. The `r nrow(out)` outside are `r knitr::combine_words(sprintf("%s at %s", tolower(pretty_name(out$outcome)), tolower(WL[out$window])))`.
+- `r n_in` of the `r n_pi` published estimates that have a band (`r pct(n_in / n_pi, 0)`) lie inside it. The `r nrow(out)` outside are `r knitr::combine_words(sprintf("%s at %s", tolower(pretty_name(out$outcome)), tolower(WL[out$window])))`.
 - `r nrow(nopi)` day-1 estimates have no band, because fewer than 6 of the `r length(cfg$seeds)` cohorts had 5 or more events: `r paste(tolower(pretty_name(nopi$outcome)), collapse = " and ")`.
 - At 12 months or more, the geometric mean of the `r nrow(w5)` simulated estimates is `r sprintf("%.3f", pool5$gm)`, against `r sprintf("%.3f", pool5$pub)` published.
 - At 12 months or more, a mean of `r f1(mean(r$sig$n))` of the `r nrow(w5)` outcomes per cohort have a 95% CI below 1, against `r r$n_sig_pub` published.
@@ -224,7 +253,7 @@ The simulation result depends on these assumptions:
 - **The national SSI series are applied to the cohort.** The SSI cases by age group and the wastewater index both include reinfections.
 - **The analysis approximates the paper's Cox model.** It uses Poisson models in 5-year age bands and calendar year, without sex or comorbidity.
 
-## Check against Norwegian national data
+## Supplement: Norwegian national data from NIPH/FHI
 
 This section asks whether Norwegian national data are consistent with the result. If the true hazard ratios also hold in Norway, Norwegian cardiovascular rates after 2021 lie above their pre-pandemic trend, by about the amount that the simulation predicts. `Norway.R` compares the two.
 
@@ -235,7 +264,7 @@ nimp <- nw$imp
 YR <- nw$cfg$years_reinf
 ```
 
-- **Observed:** FHI patients per year with at least one contact for the diagnosis, 2016 to 2025, by age group. The rates are age-standardised to the Norwegian population of 2019. `data/fhi/README.md` gives the source.
+- **Observed:** patients per year with at least one contact for the diagnosis, from the Norwegian Institute of Public Health (NIPH/FHI), 2016 to 2025, by age group. The rates are age-standardised to the Norwegian population of 2019. `data/fhi/README.md` gives the source.
 - **Trend:** a quasi-Poisson trend in the rate per person, per age group, fitted on 2016 to 2019, with its 95% prediction interval.
 - **Effect of the true hazard ratios:** per outcome and window since infection, (true HR - 1) times the test-negative rate of the outcome in Supplementary Table 1. This is multiplied by the person-years that Norway spends in each window in each year.
 - **Infections:** to the end of 2022, infections follow the timing of the simulated Danish cohort, recorded and unrecorded. By then `r pct(sum(r$mon$recorded + r$mon$unrecorded) / cfg$n)` of persons have had a first infection. In each of `r paste(YR, collapse = ", ")`, a share of all persons is infected, or reinfected: `r paste(sprintf("%d%%", round(100 * nw$cfg$p_reinf)), collapse = ", ")` in three scenarios. Each infection has its own windows, and the effects of infections add up.
@@ -258,11 +287,11 @@ knitr::kable(
 
 ### What the groups contain
 
-The simulated outcomes follow the ICD-10 groups of Boyd et al. (Supplementary Methods). They do not match the FHI groups exactly.
+The simulated outcomes follow the ICD-10 groups of Boyd et al. (Supplementary Methods). They do not match the NIPH/FHI groups exactly.
 
-| FHI group | FHI codes | Simulated outcomes | In FHI, not in the simulated outcomes | In the simulated outcomes, not in FHI | Double counted in the simulation |
+| NIPH/FHI group | NIPH/FHI codes | Simulated outcomes | In NIPH/FHI, not in the simulated outcomes | In the simulated outcomes, not in NIPH/FHI | Double counted in the simulation |
 |---|---|---|---|---|---|
-| All CVD | I00-I99 | The sum of all 15 outcomes | I00-I09, I10-I15, I25.2, I27-I28, I32, I39, I41, I42.6-I42.7, I43, I51-I52, I67.3-I67.5, I67.7, I68-I70, I73, I77-I79, I83-I99 | G45 | A person with diagnoses in two or more of the 15 outcomes counts once per outcome. FHI counts each patient once. |
+| All CVD | I00-I99 | The sum of all 15 outcomes | I00-I09, I10-I15, I25.2, I27-I28, I32, I39, I41, I42.6-I42.7, I43, I51-I52, I67.3-I67.5, I67.7, I68-I70, I73, I77-I79, I83-I99 | G45 | A person with diagnoses in two or more of the 15 outcomes counts once per outcome. NIPH/FHI counts each patient once. |
 | Ischemic heart disease | I20-I25 | Ischemic heart disease: I20-I25, except I25.2-I25.4 | I25.2-I25.4 | none | none |
 | Atrial fibrillation and flutter | I48 | Arrhythmias: I47-I49 | none | I47, I49 | none |
 | Stroke | I61, I63, I64 | Cerebrovascular hemorrhage (I60-I62) and cerebral infarction (I63-I64) | none | I60, I62 | A person with both outcomes counts twice. |
@@ -275,11 +304,11 @@ ht <- as.numeric(unlist(fa[dx == "Hypertensjon (I10-I15)", ..yc]))
 cv <- as.numeric(unlist(fa[dx == "Hjerte- og karsykdommer (I00-I99)", ..yc]))
 ```
 
-Hypertension (I10-I15) is in the FHI all-CVD group but in no simulated outcome. From 2016 to 2025 it has `r f0(min(ht))` to `r f0(max(ht))` patients per year, `r pct(min(ht / cv), 0)` to `r pct(max(ht / cv), 0)` of the all-CVD patients.
+Hypertension (I10-I15) is in the NIPH/FHI all-CVD group but in no simulated outcome. From 2016 to 2025 it has `r f0(min(ht))` to `r f0(max(ht))` patients per year, `r pct(min(ht / cv), 0)` to `r pct(max(ht / cv), 0)` of the all-CVD patients.
 
-The FHI table has 5 more diagnosis groups. `Norway.R` does not use them:
+The NIPH/FHI table has 5 more diagnosis groups. `Norway.R` does not use them:
 
-| FHI group | FHI codes | Closest Boyd group | Why it is not used |
+| NIPH/FHI group | NIPH/FHI codes | Closest Boyd group | Why it is not used |
 |---|---|---|---|
 | Hypertension | I10-I15 | none | No Boyd group contains it, so the simulation has no effect for it. |
 | Angina pectoris | I20 | Ischemic heart disease: I20-I25, except I25.2-I25.4 | It is part of ischemic heart disease, which is used. The simulation has no separate effect for it. |
@@ -290,45 +319,11 @@ The FHI table has 5 more diagnosis groups. `Norway.R` does not use them:
 ### Limits of the comparison
 
 - **Ecological data.** Ageing, catch-up after 2020, changes in coding and changes in treatment also move these counts. So a rate above the band is not evidence of an effect of infection.
-- **Prevalent counts.** FHI counts patients with any contact in the year, and the simulation counts first diagnoses. The two edges of the band show two assumptions about returning patients. They are not bounds.
+- **Prevalent counts.** NIPH/FHI counts patients with any contact in the year, and the simulation counts first diagnoses. The two edges of the band show two assumptions about returning patients. They are not bounds.
 - **The trend** is fitted on 4 years and extrapolated over 6.
 - **Danish inputs.** The test-negative rates and the infection timing to 2022 come from the Danish cohort. So the effect has the Danish cohort's age mix, while the observed rates and the trend are age-standardised to Norway in 2019.
 - **Reinfections** are assumed: their share per year, and that their effects add to those of earlier infections.
 - **The group definitions** differ, as the table above shows. For atrial fibrillation, the simulated arrhythmias are wider than I48, so their effect may not apply to I48 alone.
-
-## Appendix: values per outcome
-
-The tables give the values in the result figure, one table per outcome, ordered as in the figure. The last column is the extra rate of first diagnoses in the window: the rate with infection less the rate without, per 100,000 person-years.
-
-- **Persons:** those with a recorded infection, each simulated with and without infection.
-- **Windows:** measured from the recorded infection, or from entry for an infection before entry, as in the analysis. The window of 12 months or more runs to the end of follow-up.
-- **At risk:** until a first diagnosis of the outcome, death or the end of follow-up. A diagnosis of another outcome does not stop the count.
-- **Death:** infection does not kill in this comparison. Each person has the same death time with and without infection.
-- **Value:** the mean over the `r length(cfg$seeds)` cohorts.
-
-Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall just below 0. This comes from Monte Carlo error, and from infection bringing diagnoses forward, which removes persons from risk in later windows.
-
-```{r}
-#| results: asis
-tab <- ow[, .(window, outcome, true, l95, u95, pub, lo, hi)]
-tab[r$rrp, on = .(outcome, window), rd := i.rd]
-tab[, rd_txt := sprintf("%.1f", round(rd, 1) + 0)]
-for (o in ord) {
-  cat(sprintf("\n#### %s\n\n", pretty_name(o)))
-  print(knitr::kable(
-    tab[outcome == o][order(window), .(
-      Window = WL[window],
-      "True<br>HR" = f2(true),
-      "Simulated<br>95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
-      "Published HR<br>(95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
-      "Extra per 100,000<br>person-years" = rd_txt
-    )],
-    format = "pipe",
-    align = "lrrrr"
-  ))
-  cat("\n")
-}
-```
 
 ## How to run it
 
@@ -349,11 +344,11 @@ In one measured run with 2 workers, it took 657 seconds on a 20-core Linux machi
 | `Norway.R` | The comparison with Norwegian national data. |
 | `README.qmd` | The source of this README. |
 | `data/ssi/` | The SSI source files, byte for byte, with their sources and md5s. |
-| `data/fhi/` | The FHI source file, byte for byte, with its source and md5. |
+| `data/fhi/` | The NIPH/FHI source file, byte for byte, with its source and md5. |
 | `figures/` | The 5 figures that `Run.R` draws, and the 1 that `Norway.R` draws. |
 | `results/run.rds` | The results that `Run.R` saves and `README.qmd` reads. |
 | `results/norway.rds` | The results that `Norway.R` saves and `README.qmd` reads. |
 
 ## Licence
 
-The code and figures are under the MIT licence. See `LICENSE`. The MIT licence does not cover the SSI files in `data/ssi/`: they are © Copyright Statens Serum Institut. The FHI file in `data/fhi/` is under the Norwegian Licence for Open Government Data (NLOD).
+The code and figures are under the MIT licence. See `LICENSE`. The MIT licence does not cover the SSI files in `data/ssi/`: they are © Copyright Statens Serum Institut. The NIPH/FHI file in `data/fhi/` is under the Norwegian Licence for Open Government Data (NLOD).

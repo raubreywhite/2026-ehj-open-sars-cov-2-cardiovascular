@@ -1,6 +1,6 @@
-# FHI source file
+# NIPH/FHI source file
 
-`Total forekomst_ Utvalgte diagnoser, antall pasienter.xlsx` is a byte-for-byte copy of a table from the cardiovascular disease registry statistics of the Norwegian Institute of Public Health (Folkehelseinstituttet, FHI), downloaded on 1 October 2026. It is published under the Norwegian Licence for Open Government Data (NLOD). `Norway.R` reads it. It stops if the md5 differs from the value below.
+`Total forekomst_ Utvalgte diagnoser, antall pasienter.xlsx` is a byte-for-byte copy of a table from the cardiovascular disease registry statistics of the Norwegian Institute of Public Health (Folkehelseinstituttet, NIPH/FHI), downloaded on 1 October 2026. It is published under the Norwegian Licence for Open Government Data (NLOD). `Norway.R` reads it. It stops if the md5 differs from the value below.
 
 | File | Source | File md5 |
 |---|---|---|
