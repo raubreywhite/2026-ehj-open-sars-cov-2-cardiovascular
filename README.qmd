@@ -42,13 +42,22 @@ py <- r$py_cmp
 
 # Bias and the long-term cardiovascular risk after SARS-CoV-2 infection
 
-This repository holds the simulation behind a letter to EHJ Open on Boyd et al. 2026 (doi:10.1093/ehjopen/oeag121). The paper is "SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity". The paper reports hazard ratios below 1 for most cardiovascular outcomes from 12 months after infection. The simulation shows that an approximation of the study design can produce those estimates when the true effect of infection is harmful.
+Boyd et al. 2026, "SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity" (EHJ Open, doi:10.1093/ehjopen/oeag121), report hazard ratios below 1 for most cardiovascular outcomes from 12 months after infection. Taken as causal, these estimates mean that infection protects against later cardiovascular disease. This repository holds the simulation behind our letter on that paper. In the simulation, infection increases cardiovascular risk, and an approximation of the study design still gives the published estimates.
 
-`Run.R` simulates `r length(cfg$seeds)` cohorts of `r f0(cfg$n)` synthetic persons, one per member of the paper's cardiovascular cohort. It analyses each cohort as the paper does, and compares the estimates with the published ones. It then compares one simulated cohort with the paper, its supplement and national data. `README.qmd` reads every simulation result in this README from `results/run.rds`.
+`Run.R` simulates `r length(cfg$seeds)` cohorts of `r f0(cfg$n)` synthetic persons, one per member of the paper's cardiovascular cohort. It analyses each cohort as the paper does, and compares the estimates with the published ones. `Norway.R` then checks the result against Norwegian national data. `README.qmd` reads every result in this README from `results/run.rds` and `results/norway.rds`.
+
+The sections are:
+
+1. [Result](#result): the simulated study reproduces the published estimates from harmful true effects.
+2. [Why the estimates fall below 1](#why-the-estimates-fall-below-1): the five sources of bias.
+3. [The model](#the-model) and [how the simulated cohort matches the paper](#how-the-simulated-cohort-matches-the-paper).
+4. [Assumptions and limits](#assumptions-and-limits).
+5. [Check against Norwegian national data](#check-against-norwegian-national-data).
+6. [Appendix: values per outcome](#appendix-values-per-outcome).
 
 ## Result
 
-At 12 months or more, the assumed true hazard ratio is at least `r f2(min(w5$true))` for all `r nrow(w5)` outcomes. The published estimates are below 1 for `r w5[, sum(pub < 1)]` of them. The simulated study, analysed as the paper does, reproduces the published estimates: `r n_in` of the `r n_pi` published estimates with a prediction interval lie inside it.
+At 12 months or more, every true hazard ratio in the simulation is at least `r f2(min(w5$true))`, so infection is harmful for all `r nrow(w5)` outcomes. The published estimates are below 1 for `r w5[, sum(pub < 1)]` of them. The simulated study, analysed as the paper does, gives the same low estimates: `r n_in` of the `r n_pi` published point estimates lie inside the 95% prediction interval of the simulated estimates.
 
 ![Assumed true, biased and published hazard ratios](figures/forest_outcome_truths.png)
 
@@ -58,60 +67,34 @@ Each row is one of the `r nrow(w5)` cardiovascular outcomes with the highest bas
 - **Green band:** the 95% prediction interval (PI) for the estimate of one study of this size. It comes from the `r length(cfg$seeds)` simulated cohorts. A cohort has an estimate only if the window has at least 5 events, and a band needs estimates from at least 6 cohorts.
 - **Black square and bar:** the published estimate and its 95% CI, from Supplementary Table 1.
 
-### Values per outcome
-
-The tables give the values in the figure, one table per outcome. The last column gives the extra rate of first diagnoses within the window: the rate with infection less the rate without, per 100,000 person-years.
-
-The two rates are for the same persons, with and without infection. The persons are those with a recorded infection. Each window is measured from the recorded infection, or from entry for an infection before entry, as in the analysis. The window of 12 months or more runs to the end of follow-up. A person is at risk until a first diagnosis of the outcome, death or the end of follow-up. A diagnosis of another outcome does not stop the count. In this comparison infection does not kill: each person has the same death time with and without infection. The value is the mean over the `r length(cfg$seeds)` cohorts. Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall just below 0. Two things cause this: Monte Carlo error, and infection bringing diagnoses forward, which removes persons from risk in later windows.
-
-```{r}
-#| results: asis
-tab <- ow[, .(window, outcome, true, l95, u95, pub, lo, hi)]
-tab[r$rrp, on = .(outcome, window), rd := i.rd]
-tab[, rd_txt := sprintf("%.1f", round(rd, 1) + 0)]
-for (o in ord) {
-  cat(sprintf("\n#### %s\n\n", pretty_name(o)))
-  print(knitr::kable(
-    tab[outcome == o][order(window), .(
-      Window = WL[window],
-      "True<br>HR" = f2(true),
-      "Simulated<br>95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
-      "Published HR<br>(95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
-      "Extra per 100,000<br>person-years" = rd_txt
-    )],
-    format = "pipe",
-    align = "lrrrr"
-  ))
-  cat("\n")
-}
-```
+The [appendix](#appendix-values-per-outcome) gives the values in the figure.
 
 ### Agreement with the published estimates
 
-The true hazard ratios are fitted to the published estimates. So the agreement below shows that the fit succeeded. It is not an independent validation.
+The true hazard ratios are fitted to the published estimates. So this agreement shows that the fit worked. It is not an independent test.
 
 - `r n_in` of the `r n_pi` published estimates that have a band lie inside it. The `r nrow(out)` outside are `r knitr::combine_words(sprintf("%s at %s", tolower(pretty_name(out$outcome)), tolower(WL[out$window])))`.
 - `r nrow(nopi)` day-1 estimates have no band, because fewer than 6 of the `r length(cfg$seeds)` cohorts had 5 or more events: `r paste(tolower(pretty_name(nopi$outcome)), collapse = " and ")`.
 - At 12 months or more, the geometric mean of the `r nrow(w5)` simulated estimates is `r sprintf("%.3f", pool5$gm)`, against `r sprintf("%.3f", pool5$pub)` published.
 - At 12 months or more, a mean of `r f1(mean(r$sig$n))` of the `r nrow(w5)` outcomes per cohort have a 95% CI below 1, against `r r$n_sig_pub` published.
 
-### Why the estimates fall below 1
+### Extra diagnoses
 
-The difference between the true and the estimated hazard ratios is bias from five sources in the simulated study:
+`Run.R` simulates each cohort a second time without infection. The persons, their natural death times and their event thresholds stay the same. With infection, a mean of `r f0(xt["all", m])` more persons per cohort have a CVD diagnosis. That is `r f1(1e5 * xt["all", m] / cfg$n)` per 100,000 persons, or `r pct(xt["all", m] / r$paper$cvd_n, 2)` of the `r f0(r$paper$cvd_n)` persons with a CVD diagnosis in the paper. Of them, `r f0(xt["recorded", m])` have a recorded infection and `r f0(xt["unrecorded", m])` an unrecorded one.
+
+In the 12 months after a recorded infection, the risk of a first CVD diagnosis is `r pct(mean(xk[, "with"]), 3)` with infection and `r pct(mean(xk[, "without"]), 3)` without. The base is the `r f0(mean(xk[, "n"]))` persons per cohort with a recorded infection whose study period runs at least 12 months past it.
+
+The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column gives a different measure from the tables: the cumulative extra diagnoses per 100,000 persons over the 24 months after the recorded infection, or after entry for an infection before entry. Its base is the `r f0(mean(rd5$n))` persons per cohort whose study period runs that long.
+
+## Why the estimates fall below 1
+
+In the simulated study, five sources of bias push the estimates below the true hazard ratios:
 
 - unrecorded differences in cardiovascular risk between persons of the same age (shared frailty);
 - infections that testing did not record, in the comparison group;
 - censoring at the first diagnosis in any of the 15 cardiovascular groups;
 - selection into early infection: persons infected before the Omicron wave have a lower baseline cardiovascular risk;
 - death at infection: it is more probable at older ages and higher frailty, so it removes high-risk infected persons from follow-up.
-
-### Absolute excess
-
-`Run.R` simulates each cohort again without infection. The persons, their natural death times and their event thresholds stay the same. With infection, a mean of `r f0(xt["all", m])` more persons per cohort have a CVD diagnosis. That is `r f1(1e5 * xt["all", m] / cfg$n)` per 100,000 persons, or `r pct(xt["all", m] / r$paper$cvd_n, 2)` of the `r f0(r$paper$cvd_n)` persons with a CVD diagnosis in the paper. Of them, `r f0(xt["recorded", m])` have a recorded infection and `r f0(xt["unrecorded", m])` an unrecorded one.
-
-In the 12 months after a recorded infection, the risk of a first CVD diagnosis is `r pct(mean(xk[, "with"]), 3)` with infection and `r pct(mean(xk[, "without"]), 3)` without. The base is the `r f0(mean(xk[, "n"]))` persons per cohort with a recorded infection whose study period runs at least 12 months past it.
-
-The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column gives a different measure from the tables: the cumulative extra diagnoses per 100,000 persons over the 24 months after the recorded infection, or after entry for an infection before entry. Its base is the `r f0(mean(rd5$n))` persons per cohort whose study period runs that long.
 
 ## The model
 
@@ -120,7 +103,7 @@ Each cohort follows its persons from 1 March 2020 to 31 December 2022. The table
 | Component | How `Run.R` draws it | Source |
 |---|---|---|
 | Age | Age at the start of follow-up, from a monotone spline. Its knots are the median 34.2, the quartiles 18.5 and 52.3, and the Table 1 band edges at 40 and 65 years. Above the last band, the knots are 72 years (95th percentile), 97 (99.9th) and 105. | Paper, Results and Table 1. The knots above 65 years are assumed. |
-| Follow-up | Start of follow-up, from a monotone spline. Its quartiles are day 1036 minus the paper's follow-up quartiles. Its 95th percentile is day `r f1(cfg$entry_knots$day[5])`, and its maximum is day `r cfg$entry_knots$day[6]`. Follow-up stops at the first CVD diagnosis, death or 31 December 2022. | Paper, Results, for the quartiles. The 95th percentile is fitted to the person-years of Supplementary Tables 1 and 7. |
+| Follow-up | Start of follow-up, from a monotone spline. Day 1036 is 31 December 2022, the end of follow-up. So the quartiles of the start day are day 1036 minus the paper's follow-up quartiles. Its 95th percentile is day `r f1(cfg$entry_knots$day[5])`, and its maximum is day `r cfg$entry_knots$day[6]`. Follow-up stops at the first CVD diagnosis, death or 31 December 2022. | Paper, Results, for the quartiles. The 95th percentile is fitted to the person-years of Supplementary Tables 1 and 7. |
 | Frailty | One log-normal multiplier, SD `r cfg$fsd` on the log scale. It multiplies all 15 CVD hazards, the death hazard and the probability of death at infection. | Assumed. |
 | Outcomes | 15 CVD groups. Each hazard is Gompertz in age, doubling every 7.5 years, times frailty. The level of each outcome is its events per test-negative person-year. One scale factor sets the test-negative first-event rate to `r sprintf("%.3f", cfg$rate_true)` per 1000 person-years. | Supplementary Table 1: 54,247 events in `r f0(r$pub_py[1, "t1"])` test-negative person-years. The age slope is assumed. |
 | Calendar step | From 11 March 2022, every outcome hazard is `r sprintf("%.3f", cfg$step_mult)` times higher. The multiplier and the scale factor are solved against the published test-negative rates of 8.119 per 1000 person-years before that day and 10.870 after. They are solved without an infection effect or unrecorded infections. | Supplementary Table 7, and Table 1 minus Table 7. The step is assumed. |
@@ -131,9 +114,9 @@ Each cohort follows its persons from 1 March 2020 to 31 December 2022. The table
 | Death | Gompertz in age: 0.8 per 1000 person-years at the median age, doubling every 8 years, times frailty. Only a living person is infected. An infection dated after natural death moves to a living person of the same age group, or of any age group if none is free. An infection during follow-up kills with probability `r cfg$p80` at age 80 and average frailty, more at older ages and higher frailty. Every person is alive at the start of follow-up, so an earlier infection does not kill. | Assumed. |
 | Analysis | Person-time split by window since the recorded test, 5-year age band and calendar year, censored at the first CVD diagnosis. One Poisson model per outcome. | Approximates the paper's Cox model. Sex and comorbidity are not simulated. |
 
-## How the simulated cohort matches the known data
+## How the simulated cohort matches the paper
 
-`Run.R` compares the seed-1 cohort with the published data. In the Role column, "input" marks a quantity that the model takes from the source or is fitted to. "Check" marks a quantity that no input sets.
+`Run.R` compares the first simulated cohort (seed 1) with the paper, its supplement and national data. In the Role column, "input" marks a quantity that the model takes from the source or is fitted to. "Check" marks a quantity that no input sets.
 
 ```{r}
 ia <- r$inf_age
@@ -227,9 +210,23 @@ The cohort agrees closely with the published data in age, follow-up, person-time
 
 The Erikstrup comparison is weak. Erikstrup counts healthy blood donors aged 17-72, and the cohort has all ages. The model has first infections only, and a donor can seroconvert on a reinfection. The one-third unrecorded share applies to the whole study period, but the timing weights move unrecorded infections later. So in the Erikstrup window only `r cm("Unrecorded share of those infections", "simulated")` of infections are unrecorded.
 
-## Norwegian national data
+## Assumptions and limits
 
-`Norway.R` asks whether Norwegian national data fit the effect that the true hazard ratios imply. If the true hazard ratios hold, cardiovascular diagnoses after 2021 lie above their pre-pandemic trend by an amount that the simulation predicts.
+The simulation result depends on these assumptions:
+
+- **The true hazard ratios are fitted to the published estimates.** The simulation shows that bias can produce the published estimates from harmful true effects. It does not show that the fitted hazard ratios are the true effects of infection.
+- **The selection into early infection is assumed.** At `pre_frailty` `r cfg$pre_frailty`, persons with a recorded infection before the Omicron wave are less frail than persons infected later. Over the `r length(cfg$seeds)` cohorts, the ratio of mean frailty is `r sprintf("%.2f", r$sel_ratio["all", "u"])`. Frailty is the unrecorded cardiovascular risk of persons of the same age. The ratio of modelled baseline CVD rates, which includes age, is `r sprintf("%.2f", r$sel_ratio["all", "rate"])`. No source measures this in the cohort.
+- **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during one Omicron wave. The model applies it to all ages and the whole study period.
+- **The frailty SD of `r cfg$fsd` is assumed.** At the same age, the 95th percentile of the hazard multiplier is `r f1(exp(2 * qnorm(0.95) * cfg$fsd))` times the 5th. The same frailty drives every outcome, death and death at infection, so these risks rise together.
+- **The timing weights `r f2(cfg$detect_early)` and `r f2(cfg$detect_late)`, the death hazard and the death at infection are assumed.**
+- **The calendar step is assumed.** It models a rise in the test-negative rate that the simulation does not explain.
+- **The analysis adjusts for calendar year only.** This approximates the paper's adjustment for calendar period. The calendar step falls inside 2022, so this adjustment cannot remove it.
+- **The national SSI series are applied to the cohort.** The SSI cases by age group and the wastewater index both include reinfections.
+- **The analysis approximates the paper's Cox model.** It uses Poisson models in 5-year age bands and calendar year, without sex or comorbidity.
+
+## Check against Norwegian national data
+
+This section asks whether Norwegian national data are consistent with the result. If the true hazard ratios also hold in Norway, Norwegian cardiovascular rates after 2021 lie above their pre-pandemic trend, by about the amount that the simulation predicts. `Norway.R` compares the two.
 
 ```{r}
 nw <- readRDS("results/norway.rds")
@@ -246,7 +243,7 @@ YR <- nw$cfg$years_reinf
 
 ![Norwegian rates against the pre-pandemic trend and the effect of the true hazard ratios](figures/norway_excess.png)
 
-The table gives, for `r paste(range(YR), collapse = " to ")`, where the observed rate lies against the band in each scenario.
+The table gives, for `r paste(range(YR), collapse = " to ")`, where the observed rate lies against the band in each scenario. Inside means that the observed rate lies between the two edges of the band. Above and below mean that it lies outside them.
 
 ```{r}
 st <- nimp[year %in% YR]
@@ -299,19 +296,39 @@ The FHI table has 5 more diagnosis groups. `Norway.R` does not use them:
 - **Reinfections** are assumed: their share per year, and that their effects add to those of earlier infections.
 - **The group definitions** differ, as the table above shows. For atrial fibrillation, the simulated arrhythmias are wider than I48, so their effect may not apply to I48 alone.
 
-## Assumptions and limits
+## Appendix: values per outcome
 
-The result depends on these assumptions:
+The tables give the values in the result figure, one table per outcome, ordered as in the figure. The last column is the extra rate of first diagnoses in the window: the rate with infection less the rate without, per 100,000 person-years.
 
-- **The true hazard ratios are fitted to the published estimates.** The simulation shows that bias can produce the published estimates from harmful true effects. It does not show that the fitted hazard ratios are the true effects of infection.
-- **The selection into early infection is assumed.** At `pre_frailty` `r cfg$pre_frailty`, persons with a recorded infection before the Omicron wave are less frail than persons infected later. Over the `r length(cfg$seeds)` cohorts, the ratio of mean frailty is `r sprintf("%.2f", r$sel_ratio["all", "u"])`. Frailty is the unrecorded cardiovascular risk of persons of the same age. The ratio of modelled baseline CVD rates, which includes age, is `r sprintf("%.2f", r$sel_ratio["all", "rate"])`. No source measures this in the cohort.
-- **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during one Omicron wave. The model applies it to all ages and the whole study period.
-- **The frailty SD of `r cfg$fsd` is assumed.** At the same age, the 95th percentile of the hazard multiplier is `r f1(exp(2 * qnorm(0.95) * cfg$fsd))` times the 5th. The same frailty drives every outcome, death and death at infection, so these risks rise together.
-- **The timing weights `r f2(cfg$detect_early)` and `r f2(cfg$detect_late)`, the death hazard and the death at infection are assumed.**
-- **The calendar step is assumed.** It models a rise in the test-negative rate that the simulation does not explain.
-- **The analysis adjusts for calendar year only.** This approximates the paper's adjustment for calendar period. The calendar step falls inside 2022, so this adjustment cannot remove it.
-- **The national SSI series are applied to the cohort.** The SSI cases by age group and the wastewater index both include reinfections.
-- **The analysis approximates the paper's Cox model.** It uses Poisson models in 5-year age bands and calendar year, without sex or comorbidity.
+- **Persons:** those with a recorded infection, each simulated with and without infection.
+- **Windows:** measured from the recorded infection, or from entry for an infection before entry, as in the analysis. The window of 12 months or more runs to the end of follow-up.
+- **At risk:** until a first diagnosis of the outcome, death or the end of follow-up. A diagnosis of another outcome does not stop the count.
+- **Death:** infection does not kill in this comparison. Each person has the same death time with and without infection.
+- **Value:** the mean over the `r length(cfg$seeds)` cohorts.
+
+Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall just below 0. This comes from Monte Carlo error, and from infection bringing diagnoses forward, which removes persons from risk in later windows.
+
+```{r}
+#| results: asis
+tab <- ow[, .(window, outcome, true, l95, u95, pub, lo, hi)]
+tab[r$rrp, on = .(outcome, window), rd := i.rd]
+tab[, rd_txt := sprintf("%.1f", round(rd, 1) + 0)]
+for (o in ord) {
+  cat(sprintf("\n#### %s\n\n", pretty_name(o)))
+  print(knitr::kable(
+    tab[outcome == o][order(window), .(
+      Window = WL[window],
+      "True<br>HR" = f2(true),
+      "Simulated<br>95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
+      "Published HR<br>(95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
+      "Extra per 100,000<br>person-years" = rd_txt
+    )],
+    format = "pipe",
+    align = "lrrrr"
+  ))
+  cat("\n")
+}
+```
 
 ## How to run it
 
