@@ -74,10 +74,10 @@ for (o in ord) {
   print(knitr::kable(
     tab[outcome == o][order(window), .(
       Window = WL[window],
-      "True HR" = f2(true),
-      "Simulated, 95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
-      "Published HR (95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
-      "Cumulative extra per 100,000" = rd_txt
+      "True<br>HR" = f2(true),
+      "Simulated<br>95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
+      "Published HR<br>(95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
+      "Cumulative extra<br>per 100,000" = rd_txt
     )],
     format = "pipe",
     align = "lrrrr"
