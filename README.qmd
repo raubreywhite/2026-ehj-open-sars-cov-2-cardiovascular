@@ -17,7 +17,6 @@ f1 <- function(x) sprintf("%.1f", x)
 f2 <- function(x) sprintf("%.2f", x)
 pct <- function(x, d = 1) sprintf(paste0("%.", d, "f%%"), 100 * x)
 WL <- c("Day 0-1", "Day 2 to <1 month", "1 to 5 months", "6 to 11 months", "12 months or more")
-RD_END <- c("1 day", "30 days", "6 months", "12 months", "24 months")
 ow <- copy(r$ow)
 w5 <- ow[window == 5L]
 ord <- w5[order(-true, -pub), outcome]
@@ -26,6 +25,7 @@ n_in <- ow[, sum(pub_in_pi, na.rm = TRUE)]
 out <- ow[pub_in_pi == FALSE][order(window, outcome)]
 nopi <- ow[is.na(l95)][order(outcome)]
 pool5 <- r$pooled[window == 5L]
+rd5 <- r$rdpn[window == 5L]
 xt <- r$xt
 xk <- r$xk
 mon <- r$mon
@@ -60,14 +60,14 @@ Each row is one of the `r nrow(w5)` cardiovascular outcomes with the highest bas
 
 ### Values per outcome
 
-The tables give the values in the figure, one table per outcome. The last column gives the extra diagnoses that infection causes, counted to the end of the window. So it adds up the effect of the true hazard ratios in that window and in all earlier windows.
+The tables give the values in the figure, one table per outcome. The last column gives the extra rate of first diagnoses within the window: the rate with infection less the rate without, per 100,000 person-years.
 
-The extra diagnoses compare the same persons with and without infection. They are per 100,000 persons with a recorded infection. The count starts at the recorded infection, or at entry for an infection before entry. It ends `r paste(RD_END[1:4], collapse = ", ")` and `r RD_END[5]` later, one end per window. In this comparison infection does not kill: each person has the same death time with and without infection. A death before the diagnosis counts as no diagnosis. A diagnosis of another outcome does not stop the count. The base is the persons whose study period reaches the end of the window. The value is the mean over the `r length(cfg$seeds)` cohorts.
+The two rates are for the same persons, with and without infection. The persons are those with a recorded infection. Each window is measured from the recorded infection, or from entry for an infection before entry, as in the analysis. The window of 12 months or more runs to the end of follow-up. A person is at risk until a first diagnosis of the outcome, death or the end of follow-up. A diagnosis of another outcome does not stop the count. In this comparison infection does not kill: each person has the same death time with and without infection. The value is the mean over the `r length(cfg$seeds)` cohorts. Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall just below 0. Two things cause this: Monte Carlo error, and infection bringing diagnoses forward, which removes persons from risk in later windows.
 
 ```{r}
 #| results: asis
 tab <- ow[, .(window, outcome, true, l95, u95, pub, lo, hi)]
-tab[r$rdpn, on = .(outcome, window), rd := 1000 * i.cum]
+tab[r$rrp, on = .(outcome, window), rd := i.rd]
 tab[, rd_txt := sprintf("%.1f", round(rd, 1) + 0)]
 for (o in ord) {
   cat(sprintf("\n#### %s\n\n", pretty_name(o)))
@@ -77,7 +77,7 @@ for (o in ord) {
       "True<br>HR" = f2(true),
       "Simulated<br>95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
       "Published HR<br>(95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
-      "Cumulative extra<br>per 100,000" = rd_txt
+      "Extra per 100,000<br>person-years" = rd_txt
     )],
     format = "pipe",
     align = "lrrrr"
@@ -111,7 +111,7 @@ The difference between the true and the estimated hazard ratios is bias from fiv
 
 In the 12 months after a recorded infection, the risk of a first CVD diagnosis is `r pct(mean(xk[, "with"]), 3)` with infection and `r pct(mean(xk[, "without"]), 3)` without. The base is the `r f0(mean(xk[, "n"]))` persons per cohort with a recorded infection whose study period runs at least 12 months past it.
 
-The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column repeats the extra diagnoses at 12 months or more from the tables above.
+The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column gives a different measure from the tables: the cumulative extra diagnoses per 100,000 persons over the 24 months after the recorded infection, or after entry for an infection before entry. Its base is the `r f0(mean(rd5$n))` persons per cohort whose study period runs that long.
 
 ## The model
 

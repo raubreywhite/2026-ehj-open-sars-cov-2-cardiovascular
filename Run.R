@@ -354,6 +354,7 @@ rm(x, late)
 # not depend on death at infection. The cohort without infection holds the
 # natural death times of the same persons. So e1, the event times of the
 # recorded persons, with the death times of d0 gives the risk with infection
+# without death at infection. rr holds the rate differences per window,
 # without death at infection.
 res <- parallel::mclapply(
   CFG$seeds,
@@ -373,6 +374,10 @@ res <- parallel::mclapply(
     r$rd <- rd_pp(k1, k0)[, seed := s][]
     e1[, tdeath := d0$tdeath[j]]
     r$rdn <- rd_pp(risk_after(e1, seq_along(j), a), k0)[, seed := s][]
+    r$rr <- rate_diff(
+      rate_after(e1, seq_along(j), a),
+      rate_after(d0, j, a)
+    )[, seed := s][]
     r$x1 <- NULL
     return(r)
   },
@@ -386,6 +391,7 @@ v <- res[[1]]$desc
 exc <- lapply(res, `[[`, "excess")
 rd <- rbindlist(lapply(res, `[[`, "rd"))
 rdn <- rbindlist(lapply(res, `[[`, "rdn"))
+rr <- rbindlist(lapply(res, `[[`, "rr"))
 rm(res)
 
 # PART 2 -- ANALYSIS ====
@@ -436,6 +442,13 @@ pool_rd <- function(x) {
 }
 rdp <- pool_rd(rd)
 rdpn <- pool_rd(rdn)
+# The rate differences per 100,000 person-years, per outcome and window: the
+# mean over the seeds and its Monte Carlo SE. py1 is the person-years with
+# infection, mean per cohort.
+rrp <- rr[,
+  .(py1 = mean(py1), rd = mean(rd), rd_se = sd(rd) / sqrt(.N)),
+  keyby = .(outcome, window)
+]
 
 ## Selection into early infection ----
 # The recorded pre-wave infected against the later infected, pooled over the
@@ -685,6 +698,16 @@ cat(sprintf(
   nrow(rdn)
 ))
 
+cat(sprintf(
+  "\nExtra first diagnoses per 100,000 person-years after a recorded infection, within each window, without death at infection, seeds %d-%d. py1: person-years with infection, mean per cohort\n",
+  min(CFG$seeds),
+  max(CFG$seeds)
+))
+kab(
+  rrp[order(match(outcome, CFG$outcomes), window)],
+  digits = c(0, 0, 0, 2, 2)
+)
+
 cat("\n## The seed-1 cohort against the published data\n\n")
 kab(cmp)
 cat("\nAge at the first test (start of follow-up minus 30 days):\n")
@@ -733,6 +756,8 @@ saveRDS(
     rdn = rdn,
     rdp = rdp,
     rdpn = rdpn,
+    rr = rr,
+    rrp = rrp,
     xr = xr,
     xpy = xpy,
     xt = xt,

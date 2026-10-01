@@ -395,6 +395,48 @@ risk_after <- function(d, j, a, cfg = CFG) {
   return(rbindlist(retval))
 }
 
+# The rate of a first diagnosis of each fitted outcome in one cohort d, per
+# window since the analysis clock. j and a are as in risk_after(). Window w
+# runs from a + lo[w] to a + hi[w], and 12 months or more runs to the end of
+# follow-up. A person is at risk in a window from its start to the first
+# diagnosis of the outcome, death, fu or the end of the window. Other outcomes
+# do not censor it. Per outcome and window, it returns the first diagnoses ev
+# and the person-years py.
+rate_after <- function(d, j, a, cfg = CFG) {
+  lo <- EDGE
+  hi <- c(EDGE[-1L], Inf)
+  end <- pmin(d$fu[j], d$tdeath[j], na.rm = TRUE)
+  retval <- list()
+  for (o in cfg$outcomes) {
+    tk <- d[[o]][j]
+    ok <- !is.na(tk) & tk <= end
+    stop_t <- pmin(end, tk, na.rm = TRUE)
+    for (w in seq_along(lo)) {
+      s <- a + lo[w]
+      retval[[length(retval) + 1L]] <- data.table(
+        outcome = o,
+        window = w,
+        ev = sum(ok & tk > s & tk <= a + hi[w]),
+        py = sum(pmax(pmin(stop_t, a + hi[w]) - s, 0)) / DAY_YR
+      )
+    }
+  }
+  return(rbindlist(retval))
+}
+
+# The rate differences per 100,000 person-years: k1 is rate_after() of the
+# cohort with infection, and k0 of the same persons without it.
+rate_diff <- function(k1, k0) {
+  stopifnot(identical(k1[, .(outcome, window)], k0[, .(outcome, window)]))
+  return(k1[, .(
+    outcome,
+    window,
+    py1 = py,
+    py0 = k0$py,
+    rd = 1e5 * (ev / py - k0$ev / k0$py)
+  )])
+}
+
 # The risk differences in percentage points: k1 is risk_after() of the cohort
 # with infection, and k0 of the same persons without it.
 rd_pp <- function(k1, k0) {
