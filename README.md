@@ -230,6 +230,62 @@ The cohort agrees closely with the published data in age, follow-up, person-time
 
 The Erikstrup comparison is weak. Erikstrup counts healthy blood donors aged 17-72, and the cohort has all ages. The model has first infections only, and a donor can seroconvert on a reinfection. The one-third unrecorded share applies to the whole study period, but the timing weights move unrecorded infections later. So in the Erikstrup window only 26.3% of infections are unrecorded.
 
+## Norwegian national data
+
+`Norway.R` asks whether Norwegian national data fit the effect that the true hazard ratios imply. If the true hazard ratios hold, cardiovascular diagnoses after 2021 lie above their pre-pandemic trend by an amount that the simulation predicts.
+
+- **Observed:** FHI patients per year with at least one contact for the diagnosis, 2016 to 2025, by age group. The rates are age-standardised to the Norwegian population of 2019. `data/fhi/README.md` gives the source.
+- **Trend:** a quasi-Poisson trend in the rate per person, per age group, fitted on 2016 to 2019, with its 95% prediction interval.
+- **Effect of the true hazard ratios:** per outcome and window since infection, (true HR - 1) times the test-negative rate of the outcome in Supplementary Table 1. This is multiplied by the person-years that Norway spends in each window in each year.
+- **Infections:** to the end of 2022, infections follow the timing of the simulated Danish cohort, recorded and unrecorded. By then 89.8% of persons have had a first infection. In each of 2023, 2024, 2025, a share of all persons is infected, or reinfected: 25%, 50%, 75% in three scenarios. Each infection has its own windows, and the effects of infections add up.
+- **The band:** its lower edge is that year’s extra first diagnoses, which assumes that no extra patient returns in a later year. Its upper edge is the extra first diagnoses accumulated since 2020, which assumes that every extra patient returns every year. The effect is per 100,000 persons of the Danish cohort’s age mix, and is added to the age-standardised trend.
+
+![Norwegian rates against the pre-pandemic trend and the effect of the true hazard ratios](figures/norway_excess.png)
+
+The table gives, for 2023 to 2025, where the observed rate lies against the band in each scenario.
+
+| Group | 25% reinfected per year | 50% reinfected per year | 75% reinfected per year |
+|:---|:---|:---|:---|
+| All CVD (I00-I99) | inside, inside, inside | inside, below, inside | below, below, below |
+| Ischemic heart disease (I20-I25) | above, above, above | above, above, inside | above, inside, inside |
+| Atrial fibrillation and flutter (I48) | below, below, below | below, below, below | below, below, below |
+| Stroke (I61, I63, I64) | below, below, below | below, below, below | below, below, below |
+| Heart failure | above, above, above | above, above, above | above, above, above |
+
+### What the groups contain
+
+The simulated outcomes follow the ICD-10 groups of Boyd et al. (Supplementary Methods). They do not match the FHI groups exactly.
+
+| FHI group | FHI codes | Simulated outcomes | In FHI, not in the simulated outcomes | In the simulated outcomes, not in FHI | Double counted in the simulation |
+|----|----|----|----|----|----|
+| All CVD | I00-I99 | The sum of all 15 outcomes | I00-I09, I10-I15, I25.2, I27-I28, I32, I39, I41, I42.6-I42.7, I43, I51-I52, I67.3-I67.5, I67.7, I68-I70, I73, I77-I79, I83-I99 | G45 | A person with diagnoses in two or more of the 15 outcomes counts once per outcome. FHI counts each patient once. |
+| Ischemic heart disease | I20-I25 | Ischemic heart disease: I20-I25, except I25.2-I25.4 | I25.2-I25.4 | none | none |
+| Atrial fibrillation and flutter | I48 | Arrhythmias: I47-I49 | none | I47, I49 | none |
+| Stroke | I61, I63, I64 | Cerebrovascular hemorrhage (I60-I62) and cerebral infarction (I63-I64) | none | I60, I62 | A person with both outcomes counts twice. |
+| Heart failure | I11.0, I13.0, I13.2, I42.0, I43, I50 | Heart failure: I50 | I11.0, I13.0, I13.2, I42.0, I43 | none | none |
+
+Hypertension (I10-I15) is in the FHI all-CVD group but in no simulated outcome. From 2016 to 2025 it has 53,121 to 64,935 patients per year, 19% to 25% of the all-CVD patients.
+
+The FHI table has 6 more groups. `Norway.R` does not use them:
+
+| FHI group | FHI codes | Closest Boyd group | Why it is not used |
+|----|----|----|----|
+| All patients in the table | the groups below and above | none | It is not a diagnosis group. |
+| Hypertension | I10-I15 | none | No Boyd group contains it, so the simulation has no effect for it. |
+| Angina pectoris | I20 | Ischemic heart disease: I20-I25, except I25.2-I25.4 | It is part of ischemic heart disease, which is used. The simulation has no separate effect for it. |
+| Acute myocardial infarction | I21, I22 | Myocardial infarction (I21), a subgroup of ischemic heart disease | The simulation has no separate effect for it. It is part of ischemic heart disease, which is used. |
+| TIA | G45 | Other cerebrovascular disease: I65-I66, I67.2, I67.6, I67.8, I67.9, G45 | The Boyd group holds more codes than G45. The simulation has no separate effect for TIA. |
+| Chest pain | R07 | none | It is a symptom code, not a cardiovascular diagnosis. No Boyd group contains it. |
+
+### Limits of the comparison
+
+- **Ecological data.** Ageing, catch-up after 2020, changes in coding and changes in treatment also move these counts. So a rate above the band is not evidence of an effect of infection.
+- **Prevalent counts.** FHI counts patients with any contact in the year, and the simulation counts first diagnoses. The two edges of the band show two assumptions about returning patients. They are not bounds.
+- **The trend** is fitted on 4 years and extrapolated over 6.
+- **Danish inputs.** The test-negative rates and the infection timing to 2022 come from the Danish cohort. So the effect has the Danish cohort’s age mix, while the observed rates and the trend are age-standardised to Norway in 2019.
+- **Reinfections** are assumed: their share per year, and that their effects add to those of earlier infections.
+- **The group definitions** differ, as the table above shows. For atrial fibrillation, the simulated arrhythmias are wider than I48, so their effect may not apply to I48 alone.
+
 ## Assumptions and limits
 
 The result depends on these assumptions:
@@ -247,7 +303,8 @@ The result depends on these assumptions:
 ## How to run it
 
 1.  Run `Rscript Run.R` from the repository root. It needs R 4.6 with data.table, ggplot2, patchwork and knitr.
-2.  Run `quarto render README.qmd` to rebuild this README from `results/run.rds`.
+2.  Run `Rscript Norway.R` from the repository root. It reads `results/run.rds`, and needs R 4.6 with data.table, ggplot2, knitr, MASS, readxl and csdata.
+3.  Run `quarto render README.qmd` to rebuild this README from `results/run.rds` and `results/norway.rds`.
 
 `Run.R` sets the model in its CFG section, and sources the functions in `R/functions.R`. It checks the md5 of the 3 SSI files in `data/ssi/`. It stops if a value in CFG differs from the SSI file that it comes from. It prints its results, draws the 5 figures into `figures/`, and saves the results to `results/run.rds`.
 
@@ -259,11 +316,14 @@ In one measured run with 2 workers, it took 657 seconds on a 20-core Linux machi
 |----|----|
 | `Run.R` | The model settings, the published values with their sources, the analysis and the output. |
 | `R/functions.R` | The simulation, the analysis and the cohort description. |
+| `Norway.R` | The comparison with Norwegian national data. |
 | `README.qmd` | The source of this README. |
 | `data/ssi/` | The SSI source files, byte for byte, with their sources and md5s. |
-| `figures/` | The 5 figures that `Run.R` draws. |
+| `data/fhi/` | The FHI source file, byte for byte, with its source and md5. |
+| `figures/` | The 5 figures that `Run.R` draws, and the 1 that `Norway.R` draws. |
 | `results/run.rds` | The results that `Run.R` saves and `README.qmd` reads. |
+| `results/norway.rds` | The results that `Norway.R` saves and `README.qmd` reads. |
 
 ## Licence
 
-The code and figures are under the MIT licence. See `LICENSE`. The MIT licence does not cover the SSI files in `data/ssi/`: they are © Copyright Statens Serum Institut.
+The code and figures are under the MIT licence. See `LICENSE`. The MIT licence does not cover the SSI files in `data/ssi/`: they are © Copyright Statens Serum Institut. The FHI file in `data/fhi/` is under the Norwegian Licence for Open Government Data (NLOD).
