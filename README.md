@@ -15,75 +15,136 @@ At 12 months or more, the assumed true hazard ratio is at least 1.01 for all 12 
 Each row is one of the 12 cardiovascular outcomes with the highest baseline rate. Each panel is a window since the first positive test.
 
 - **Red dot:** the assumed true hazard ratio. It is the effect of infection on the hazard of each person, given age and frailty. It is not a population (marginal) hazard ratio.
-- **Green band:** the 95% prediction interval for the estimate of one study of this size. It comes from the 10 simulated cohorts. A cohort has an estimate only if the window has at least 5 events, and a band needs estimates from at least 6 cohorts.
+- **Green band:** the 95% prediction interval (PI) for the estimate of one study of this size. It comes from the 10 simulated cohorts. A cohort has an estimate only if the window has at least 5 events, and a band needs estimates from at least 6 cohorts.
 - **Black square and bar:** the published estimate and its 95% CI, from Supplementary Table 1.
 
-The table gives the values in the figure. Its last column gives the extra diagnoses that infection causes, counted from the start of follow-up after infection to the end of the window. So it adds up the effect of the true hazard ratios in that window and in all earlier windows.
+### Values per outcome
 
-| Window | Outcome | True HR | Simulated estimate, 95% prediction interval | Published HR (95% CI) | Extra diagnoses per 100,000, cumulative to the end of the window |
-|:---|:---|---:|---:|---:|---:|
-| Day 0-1 | Pulmonary embolism | 22.75 | 11.03-21.70 | 16.10 (11.00-23.50) | 1.5 |
-|  | Venous embolism | 4.27 | 1.59-5.44 | 2.67 (1.48-4.84) | 0.4 |
-|  | Inflammatory heart disease | 5.52 | none | 4.90 (2.04-11.80) | 0.1 |
-|  | Conduction disorders | 11.13 | 5.40-17.86 | 8.85 (5.01-15.60) | 0.5 |
-|  | Arrhythmias | 9.17 | 5.56-9.95 | 7.67 (6.17-9.53) | 3.1 |
-|  | Ischemic heart disease | 7.26 | 4.54-7.77 | 5.84 (4.21-8.11) | 1.5 |
-|  | Valve disorders | 3.22 | 1.12-6.04 | 2.51 (1.20-5.28) | 0.3 |
-|  | Cerebrovascular hemorrhage | 7.50 | 3.59-10.41 | 6.93 (3.45-13.90) | 0.3 |
-|  | Other cerebrovascular | 11.38 | 5.41-12.32 | 8.75 (5.95-12.90) | 1.1 |
-|  | Cerebral infarction | 10.35 | 6.04-12.13 | 8.29 (5.97-11.50) | 1.6 |
-|  | Aneurysm dissection | 2.98 | none | 3.85 (1.83-8.09) | 0.2 |
-|  | Heart failure | 16.21 | 7.85-20.89 | 10.80 (6.51-18.00) | 0.8 |
-| Day 2 to \<1 month | Pulmonary embolism | 6.48 | 3.83-5.02 | 4.14 (3.57-4.79) | 13.0 |
-|  | Venous embolism | 1.69 | 1.20-1.69 | 1.42 (1.22-1.66) | 3.3 |
-|  | Inflammatory heart disease | 1.37 | 0.72-1.93 | 1.08 (0.76-1.54) | 0.4 |
-|  | Conduction disorders | 1.16 | 0.69-1.65 | 0.76 (0.53-1.09) | 0.8 |
-|  | Arrhythmias | 1.38 | 1.10-1.39 | 1.19 (1.07-1.32) | 7.5 |
-|  | Ischemic heart disease | 1.15 | 0.94-1.26 | 1.01 (0.87-1.17) | 2.4 |
-|  | Valve disorders | 1.04 | 0.85-1.23 | 1.03 (0.83-1.28) | 0.4 |
-|  | Cerebrovascular hemorrhage | 1.28 | 0.85-1.78 | 1.19 (0.87-1.63) | 0.6 |
-|  | Other cerebrovascular | 1.27 | 0.82-1.51 | 1.15 (0.94-1.40) | 2.0 |
-|  | Cerebral infarction | 1.27 | 1.04-1.45 | 1.16 (0.99-1.37) | 3.2 |
-|  | Aneurysm dissection | 1.01 | 0.72-1.15 | 0.90 (0.68-1.21) | 0.2 |
-|  | Heart failure | 1.11 | 0.61-1.36 | 1.00 (0.73-1.37) | 0.9 |
-| 1 to 5 months | Pulmonary embolism | 1.57 | 1.06-1.35 | 1.21 (1.08-1.36) | 19.8 |
-|  | Venous embolism | 1.23 | 1.04-1.30 | 1.12 (1.03-1.21) | 9.0 |
-|  | Inflammatory heart disease | 1.16 | 0.84-1.32 | 0.99 (0.84-1.18) | 1.3 |
-|  | Conduction disorders | 1.16 | 0.89-1.41 | 1.08 (0.94-1.24) | 2.2 |
-|  | Arrhythmias | 1.13 | 0.97-1.18 | 1.07 (1.02-1.12) | 16.0 |
-|  | Ischemic heart disease | 1.08 | 0.99-1.11 | 0.93 (0.87-1.00) | 6.0 |
-|  | Valve disorders | 1.04 | 0.87-1.17 | 0.98 (0.89-1.08) | 1.2 |
-|  | Cerebrovascular hemorrhage | 1.01 | 0.82-1.26 | 0.86 (0.73-1.01) | 0.7 |
-|  | Other cerebrovascular | 1.08 | 0.98-1.10 | 1.01 (0.92-1.11) | 3.9 |
-|  | Cerebral infarction | 1.01 | 0.89-1.08 | 0.88 (0.81-0.96) | 3.2 |
-|  | Aneurysm dissection | 1.01 | 0.88-1.18 | 1.02 (0.90-1.15) | 0.3 |
-|  | Heart failure | 1.01 | 0.84-1.10 | 0.87 (0.73-1.01) | 1.1 |
-| 6 to 11 months | Pulmonary embolism | 1.26 | 0.81-1.08 | 0.89 (0.78-1.02) | 20.2 |
-|  | Venous embolism | 1.23 | 1.03-1.20 | 1.09 (1.00-1.18) | 14.3 |
-|  | Inflammatory heart disease | 1.16 | 0.91-1.34 | 1.05 (0.89-1.23) | 2.4 |
-|  | Conduction disorders | 1.16 | 0.86-1.30 | 1.13 (0.98-1.30) | 3.7 |
-|  | Arrhythmias | 1.13 | 0.97-1.09 | 1.05 (1.00-1.11) | 23.0 |
-|  | Ischemic heart disease | 1.08 | 0.90-1.10 | 1.03 (0.93-1.14) | 9.4 |
-|  | Valve disorders | 1.04 | 0.89-1.12 | 1.03 (0.93-1.14) | 1.8 |
-|  | Cerebrovascular hemorrhage | 1.01 | 0.83-1.13 | 0.96 (0.82-1.13) | 0.6 |
-|  | Other cerebrovascular | 1.08 | 0.92-1.11 | 1.02 (0.93-1.12) | 4.7 |
-|  | Cerebral infarction | 1.01 | 0.90-1.00 | 0.91 (0.83-0.99) | 3.1 |
-|  | Aneurysm dissection | 1.01 | 0.79-1.15 | 0.98 (0.86-1.11) | 0.4 |
-|  | Heart failure | 1.01 | 0.76-1.19 | 0.73 (0.62-0.87) | 0.9 |
-| 12 months or more | Pulmonary embolism | 1.26 | 0.49-1.11 | 0.77 (0.61-0.98) | 20.4 |
-|  | Venous embolism | 1.20 | 0.66-1.12 | 0.90 (0.77-1.05) | 18.9 |
-|  | Inflammatory heart disease | 1.16 | 0.58-1.17 | 0.91 (0.67-1.23) | 2.7 |
-|  | Conduction disorders | 1.16 | 0.60-1.37 | 1.13 (0.88-1.44) | 5.2 |
-|  | Arrhythmias | 1.12 | 0.79-0.92 | 0.90 (0.82-0.99) | 28.8 |
-|  | Ischemic heart disease | 1.08 | 0.67-1.07 | 0.89 (0.78-1.00) | 14.1 |
-|  | Valve disorders | 1.03 | 0.65-1.09 | 0.86 (0.71-1.04) | 2.4 |
-|  | Cerebrovascular hemorrhage | 1.01 | 0.51-1.20 | 0.85 (0.63-1.14) | 0.7 |
-|  | Other cerebrovascular | 1.01 | 0.63-0.99 | 0.77 (0.64-0.94) | 4.1 |
-|  | Cerebral infarction | 1.01 | 0.69-0.91 | 0.74 (0.62-0.88) | 2.6 |
-|  | Aneurysm dissection | 1.01 | 0.54-1.18 | 0.73 (0.56-0.95) | 0.9 |
-|  | Heart failure | 1.01 | 0.54-1.31 | 0.57 (0.41-0.80) | 0.7 |
+The tables give the values in the figure, one table per outcome. The last column gives the extra diagnoses that infection causes, counted to the end of the window. So it adds up the effect of the true hazard ratios in that window and in all earlier windows.
 
 The extra diagnoses compare the same persons with and without infection. They are per 100,000 persons with a recorded infection. The count starts at the recorded infection, or at entry for an infection before entry. It ends 1 day, 30 days, 6 months, 12 months and 24 months later, one end per window. In this comparison infection does not kill: each person has the same death time with and without infection. A death before the diagnosis counts as no diagnosis. A diagnosis of another outcome does not stop the count. The base is the persons whose study period reaches the end of the window. The value is the mean over the 10 cohorts.
+
+#### Pulmonary embolism
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 22.75 | 11.03-21.70 | 16.10 (11.00-23.50) | 1.5 |
+| Day 2 to \<1 month | 6.48 | 3.83-5.02 | 4.14 (3.57-4.79) | 13.0 |
+| 1 to 5 months | 1.57 | 1.06-1.35 | 1.21 (1.08-1.36) | 19.8 |
+| 6 to 11 months | 1.26 | 0.81-1.08 | 0.89 (0.78-1.02) | 20.2 |
+| 12 months or more | 1.26 | 0.49-1.11 | 0.77 (0.61-0.98) | 20.4 |
+
+#### Venous embolism
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 4.27 | 1.59-5.44 | 2.67 (1.48-4.84) | 0.4 |
+| Day 2 to \<1 month | 1.69 | 1.20-1.69 | 1.42 (1.22-1.66) | 3.3 |
+| 1 to 5 months | 1.23 | 1.04-1.30 | 1.12 (1.03-1.21) | 9.0 |
+| 6 to 11 months | 1.23 | 1.03-1.20 | 1.09 (1.00-1.18) | 14.3 |
+| 12 months or more | 1.20 | 0.66-1.12 | 0.90 (0.77-1.05) | 18.9 |
+
+#### Inflammatory heart disease
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 5.52 | none | 4.90 (2.04-11.80) | 0.1 |
+| Day 2 to \<1 month | 1.37 | 0.72-1.93 | 1.08 (0.76-1.54) | 0.4 |
+| 1 to 5 months | 1.16 | 0.84-1.32 | 0.99 (0.84-1.18) | 1.3 |
+| 6 to 11 months | 1.16 | 0.91-1.34 | 1.05 (0.89-1.23) | 2.4 |
+| 12 months or more | 1.16 | 0.58-1.17 | 0.91 (0.67-1.23) | 2.7 |
+
+#### Conduction disorders
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 11.13 | 5.40-17.86 | 8.85 (5.01-15.60) | 0.5 |
+| Day 2 to \<1 month | 1.16 | 0.69-1.65 | 0.76 (0.53-1.09) | 0.8 |
+| 1 to 5 months | 1.16 | 0.89-1.41 | 1.08 (0.94-1.24) | 2.2 |
+| 6 to 11 months | 1.16 | 0.86-1.30 | 1.13 (0.98-1.30) | 3.7 |
+| 12 months or more | 1.16 | 0.60-1.37 | 1.13 (0.88-1.44) | 5.2 |
+
+#### Arrhythmias
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 9.17 | 5.56-9.95 | 7.67 (6.17-9.53) | 3.1 |
+| Day 2 to \<1 month | 1.38 | 1.10-1.39 | 1.19 (1.07-1.32) | 7.5 |
+| 1 to 5 months | 1.13 | 0.97-1.18 | 1.07 (1.02-1.12) | 16.0 |
+| 6 to 11 months | 1.13 | 0.97-1.09 | 1.05 (1.00-1.11) | 23.0 |
+| 12 months or more | 1.12 | 0.79-0.92 | 0.90 (0.82-0.99) | 28.8 |
+
+#### Ischemic heart disease
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 7.26 | 4.54-7.77 | 5.84 (4.21-8.11) | 1.5 |
+| Day 2 to \<1 month | 1.15 | 0.94-1.26 | 1.01 (0.87-1.17) | 2.4 |
+| 1 to 5 months | 1.08 | 0.99-1.11 | 0.93 (0.87-1.00) | 6.0 |
+| 6 to 11 months | 1.08 | 0.90-1.10 | 1.03 (0.93-1.14) | 9.4 |
+| 12 months or more | 1.08 | 0.67-1.07 | 0.89 (0.78-1.00) | 14.1 |
+
+#### Valve disorders
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 3.22 | 1.12-6.04 | 2.51 (1.20-5.28) | 0.3 |
+| Day 2 to \<1 month | 1.04 | 0.85-1.23 | 1.03 (0.83-1.28) | 0.4 |
+| 1 to 5 months | 1.04 | 0.87-1.17 | 0.98 (0.89-1.08) | 1.2 |
+| 6 to 11 months | 1.04 | 0.89-1.12 | 1.03 (0.93-1.14) | 1.8 |
+| 12 months or more | 1.03 | 0.65-1.09 | 0.86 (0.71-1.04) | 2.4 |
+
+#### Cerebrovascular hemorrhage
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 7.50 | 3.59-10.41 | 6.93 (3.45-13.90) | 0.3 |
+| Day 2 to \<1 month | 1.28 | 0.85-1.78 | 1.19 (0.87-1.63) | 0.6 |
+| 1 to 5 months | 1.01 | 0.82-1.26 | 0.86 (0.73-1.01) | 0.7 |
+| 6 to 11 months | 1.01 | 0.83-1.13 | 0.96 (0.82-1.13) | 0.6 |
+| 12 months or more | 1.01 | 0.51-1.20 | 0.85 (0.63-1.14) | 0.7 |
+
+#### Other cerebrovascular
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 11.38 | 5.41-12.32 | 8.75 (5.95-12.90) | 1.1 |
+| Day 2 to \<1 month | 1.27 | 0.82-1.51 | 1.15 (0.94-1.40) | 2.0 |
+| 1 to 5 months | 1.08 | 0.98-1.10 | 1.01 (0.92-1.11) | 3.9 |
+| 6 to 11 months | 1.08 | 0.92-1.11 | 1.02 (0.93-1.12) | 4.7 |
+| 12 months or more | 1.01 | 0.63-0.99 | 0.77 (0.64-0.94) | 4.1 |
+
+#### Cerebral infarction
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 10.35 | 6.04-12.13 | 8.29 (5.97-11.50) | 1.6 |
+| Day 2 to \<1 month | 1.27 | 1.04-1.45 | 1.16 (0.99-1.37) | 3.2 |
+| 1 to 5 months | 1.01 | 0.89-1.08 | 0.88 (0.81-0.96) | 3.2 |
+| 6 to 11 months | 1.01 | 0.90-1.00 | 0.91 (0.83-0.99) | 3.1 |
+| 12 months or more | 1.01 | 0.69-0.91 | 0.74 (0.62-0.88) | 2.6 |
+
+#### Aneurysm dissection
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 2.98 | none | 3.85 (1.83-8.09) | 0.2 |
+| Day 2 to \<1 month | 1.01 | 0.72-1.15 | 0.90 (0.68-1.21) | 0.2 |
+| 1 to 5 months | 1.01 | 0.88-1.18 | 1.02 (0.90-1.15) | 0.3 |
+| 6 to 11 months | 1.01 | 0.79-1.15 | 0.98 (0.86-1.11) | 0.4 |
+| 12 months or more | 1.01 | 0.54-1.18 | 0.73 (0.56-0.95) | 0.9 |
+
+#### Heart failure
+
+| Window | True HR | Simulated, 95% PI | Published HR (95% CI) | Extra per 100,000 |
+|:---|---:|---:|---:|---:|
+| Day 0-1 | 16.21 | 7.85-20.89 | 10.80 (6.51-18.00) | 0.8 |
+| Day 2 to \<1 month | 1.11 | 0.61-1.36 | 1.00 (0.73-1.37) | 0.9 |
+| 1 to 5 months | 1.01 | 0.84-1.10 | 0.87 (0.73-1.01) | 1.1 |
+| 6 to 11 months | 1.01 | 0.76-1.19 | 0.73 (0.62-0.87) | 0.9 |
+| 12 months or more | 1.01 | 0.54-1.31 | 0.57 (0.41-0.80) | 0.7 |
+
+### Agreement with the published estimates
 
 The true hazard ratios are fitted to the published estimates. So the agreement below shows that the fit succeeded. It is not an independent validation.
 
@@ -108,7 +169,7 @@ The difference between the true and the estimated hazard ratios is bias from fiv
 
 In the 12 months after a recorded infection, the risk of a first CVD diagnosis is 0.536% with infection and 0.486% without. The base is the 665,687 persons per cohort with a recorded infection whose study period runs at least 12 months past it.
 
-The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column repeats the 12-months-or-more values of the last column of the table.
+The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column repeats the extra diagnoses at 12 months or more from the tables above.
 
 ## The model
 
@@ -205,4 +266,4 @@ In one measured run with 2 workers, it took 657 seconds on a 20-core Linux machi
 
 ## Licence
 
-The code and figures are under the MIT licence. See `LICENSE`. The MIT licence does not cover the SSI files in `data/ssi/`: they are © Copyright Statens Serum Institut, and are included with SSI’s permission.
+The code and figures are under the MIT licence. See `LICENSE`. The MIT licence does not cover the SSI files in `data/ssi/`: they are © Copyright Statens Serum Institut.

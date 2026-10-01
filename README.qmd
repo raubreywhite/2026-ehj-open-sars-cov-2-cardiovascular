@@ -55,31 +55,38 @@ At 12 months or more, the assumed true hazard ratio is at least `r f2(min(w5$tru
 Each row is one of the `r nrow(w5)` cardiovascular outcomes with the highest baseline rate. Each panel is a window since the first positive test.
 
 - **Red dot:** the assumed true hazard ratio. It is the effect of infection on the hazard of each person, given age and frailty. It is not a population (marginal) hazard ratio.
-- **Green band:** the 95% prediction interval for the estimate of one study of this size. It comes from the `r length(cfg$seeds)` simulated cohorts. A cohort has an estimate only if the window has at least 5 events, and a band needs estimates from at least 6 cohorts.
+- **Green band:** the 95% prediction interval (PI) for the estimate of one study of this size. It comes from the `r length(cfg$seeds)` simulated cohorts. A cohort has an estimate only if the window has at least 5 events, and a band needs estimates from at least 6 cohorts.
 - **Black square and bar:** the published estimate and its 95% CI, from Supplementary Table 1.
 
-The table gives the values in the figure. Its last column gives the extra diagnoses that infection causes, counted from the start of follow-up after infection to the end of the window. So it adds up the effect of the true hazard ratios in that window and in all earlier windows.
+### Values per outcome
 
-```{r}
-tab <- ow[, .(window, outcome, true, l95, u95, pub, lo, hi)]
-tab[r$rdpn, on = .(outcome, window), rd := 1000 * i.cum]
-tab <- tab[order(window, match(outcome, ord))]
-tab[, rd_txt := sprintf("%.1f", round(rd, 1) + 0)]
-knitr::kable(
-  tab[, .(
-    Window = fifelse(rowid(window) == 1L, WL[window], ""),
-    Outcome = pretty_name(outcome),
-    "True HR" = f2(true),
-    "Simulated estimate, 95% prediction interval" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
-    "Published HR (95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
-    "Extra diagnoses per 100,000, cumulative to the end of the window" = rd_txt
-  )],
-  format = "pipe",
-  align = "llrrrr"
-)
-```
+The tables give the values in the figure, one table per outcome. The last column gives the extra diagnoses that infection causes, counted to the end of the window. So it adds up the effect of the true hazard ratios in that window and in all earlier windows.
 
 The extra diagnoses compare the same persons with and without infection. They are per 100,000 persons with a recorded infection. The count starts at the recorded infection, or at entry for an infection before entry. It ends `r paste(RD_END[1:4], collapse = ", ")` and `r RD_END[5]` later, one end per window. In this comparison infection does not kill: each person has the same death time with and without infection. A death before the diagnosis counts as no diagnosis. A diagnosis of another outcome does not stop the count. The base is the persons whose study period reaches the end of the window. The value is the mean over the `r length(cfg$seeds)` cohorts.
+
+```{r}
+#| results: asis
+tab <- ow[, .(window, outcome, true, l95, u95, pub, lo, hi)]
+tab[r$rdpn, on = .(outcome, window), rd := 1000 * i.cum]
+tab[, rd_txt := sprintf("%.1f", round(rd, 1) + 0)]
+for (o in ord) {
+  cat(sprintf("\n#### %s\n\n", pretty_name(o)))
+  print(knitr::kable(
+    tab[outcome == o][order(window), .(
+      Window = WL[window],
+      "True HR" = f2(true),
+      "Simulated, 95% PI" = fifelse(is.na(l95), "none", sprintf("%.2f-%.2f", l95, u95)),
+      "Published HR (95% CI)" = sprintf("%.2f (%.2f-%.2f)", pub, lo, hi),
+      "Extra per 100,000" = rd_txt
+    )],
+    format = "pipe",
+    align = "lrrrr"
+  ))
+  cat("\n")
+}
+```
+
+### Agreement with the published estimates
 
 The true hazard ratios are fitted to the published estimates. So the agreement below shows that the fit succeeded. It is not an independent validation.
 
@@ -104,7 +111,7 @@ The difference between the true and the estimated hazard ratios is bias from fiv
 
 In the 12 months after a recorded infection, the risk of a first CVD diagnosis is `r pct(mean(xk[, "with"]), 3)` with infection and `r pct(mean(xk[, "without"]), 3)` without. The base is the `r f0(mean(xk[, "n"]))` persons per cohort with a recorded infection whose study period runs at least 12 months past it.
 
-The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column repeats the 12-months-or-more values of the last column of the table.
+The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more only, with rows sorted by the published hazard ratio. Its right column repeats the extra diagnoses at 12 months or more from the tables above.
 
 ## The model
 
@@ -256,4 +263,4 @@ In one measured run with 2 workers, it took 657 seconds on a 20-core Linux machi
 
 ## Licence
 
-The code and figures are under the MIT licence. See `LICENSE`. The MIT licence does not cover the SSI files in `data/ssi/`: they are © Copyright Statens Serum Institut, and are included with SSI's permission.
+The code and figures are under the MIT licence. See `LICENSE`. The MIT licence does not cover the SSI files in `data/ssi/`: they are © Copyright Statens Serum Institut.
