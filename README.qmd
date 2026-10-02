@@ -49,7 +49,7 @@ Boyd et al. 2026, "SARS-CoV-2 infection and long-term risk of cardiovascular and
 The sections are:
 
 1. [Result](#result): the simulated study reproduces the published estimates from harmful true effects, with the values per outcome.
-2. [Why the estimates fall below 1](#why-the-estimates-fall-below-1): what each source of bias contributes, and how much selection is needed.
+2. [Why the estimates fall below 1](#why-the-estimates-fall-below-1): how each source of bias works, what it does in the simulation, and what the paper's own estimates say.
 3. [The model](#the-model) and [how the simulated cohort matches the paper](#how-the-simulated-cohort-matches-the-paper).
 4. [Assumptions and limits](#assumptions-and-limits).
 5. [Supplement: Norwegian national data from NIPH/FHI](#supplement-norwegian-national-data-from-niphfhi).
@@ -121,18 +121,18 @@ The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows 
 
 ```{r}
 il <- readRDS("results/illustrations.rds")
-seen <- function(k) f2(il$ratio[panel == k, seen])
+seen <- function(k) f2(il$ratio[panel == k, tail(seen, 1)])
 ```
 
-The four examples below use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person's risk of a CVD diagnosis by `r f2(il$cfg$hr)`. Over the follow-up, a high-risk person has a `r pct(il$cfg$risk[["high"]], 0)` risk and a low-risk person a `r pct(il$cfg$risk[["low"]], 0)` risk. So the true ratio of risks is `r f2(il$cfg$hr)` in every example, and each example gives the ratio of risks that a study would see. This is simpler than the hazard ratios of the simulation, but the mechanisms are the same. `Illustrations.R` draws them.
+The four examples below use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person's risk of a CVD diagnosis by `r f2(il$cfg$hr)`. Over the follow-up, a high-risk person has a `r pct(il$cfg$risk[["high"]], 0)` risk and a low-risk person a `r pct(il$cfg$risk[["low"]], 0)` risk. So the true ratio of risks is `r f2(il$cfg$hr)` within each risk group in every example, and each example gives the ratio of risks that a study would see. In the depletion example the risks are per year. This is simpler than the hazard ratios of the simulation, but the mechanisms are the same. `Illustrations.R` draws them.
 
-**Selection into early infection.** If persons at high risk took more care early in the pandemic, fewer of them were infected before the Omicron wave. Infection raises everyone's risk, but the infected group starts with fewer high-risk persons. The study would see `r seen("Selection into early infection")`.
+**Selection into early infection.** If persons at high risk took more care early in the pandemic, fewer of them were infected before the Omicron wave. Infection raises everyone's risk, but the infected group starts with fewer high-risk persons. The paper's own estimates do not support this mechanism in a simple form (see below). The study would see `r seen("Selection into early infection")`.
 
 ![Selection into early infection](figures/illustration_selection.png)
 
-**Depletion of susceptibles.** Infection brings diagnoses forward, most of all in high-risk persons. A year later, the infected persons who are still free of CVD include fewer high-risk persons than the comparison group does. The study would see `r seen("Depletion of susceptibles")`.
+**Depletion of susceptibles, over time and across outcomes.** Both groups start with the same 100 persons, followed for two years. A person diagnosed with CVD in year 1 is no longer free of CVD, so they leave the comparison. Infection brings diagnoses forward, most of all in high-risk persons, so in year 2 the infected group has fewer high-risk persons left. Year 1 shows about the true ratio; year 2 does not. The same removal happens across outcomes: the paper stops follow-up for every outcome at a person's first diagnosis in any of the 15 cardiovascular groups, so a diagnosis of one outcome removes the person from the comparisons of all the others. The study would see `r seen("Depletion of susceptibles")`.
 
-![Depletion of susceptibles](figures/illustration_depletion.png)
+![Depletion of susceptibles, over time and across outcomes](figures/illustration_depletion.png)
 
 **Unrecorded infections.** About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group. In the example, 50 of 150 infections are unrecorded. Their raised risk makes the comparison group look worse. The study would see `r seen("Unrecorded infections")`.
 
@@ -142,11 +142,13 @@ The four examples below use 100 persons per group, and illustrative numbers rath
 
 ![Deaths at infection](figures/illustration_deaths.png)
 
-**Stopping at the first CVD diagnosis.** The paper stops follow-up for every outcome at a person's first diagnosis in any of the 15 cardiovascular groups. It removes high-risk persons from both groups, so in the simulation it changes the estimates very little.
+In the simulation, depletion over time works through the unmeasured risk. Depletion across outcomes, stopping at the first CVD diagnosis, changes the estimates very little, because it removes high-risk persons from both groups.
+
+**Rise in CVD rates in March 2022.** In the paper, the CVD rate among test-negative persons rose from `r sprintf("%.1f", 1000 * r$pub_ev7 / r$pub_py[1, "t7"])` per 1000 person-years before 11 March 2022 to `r sprintf("%.1f", 1000 * (54247 - r$pub_ev7) / (r$pub_py[1, "t1"] - r$pub_py[1, "t7"]))` after it. The simulation reproduces this with a rise in every CVD hazard on that day. Its analysis adjusts for calendar year only, so it treats all of 2022 as one period. In the simulated cohort, `r pct(r$mon[month >= "2021-12" & month <= "2022-02", sum(recorded)] / sum(r$mon$recorded), 0)` of recorded infections fall in December 2021 to February 2022, so their first months after infection fall mostly before the rise, while much of the comparison group's 2022 follow-up falls after it. The comparison group then looks riskier for a reason that has nothing to do with infection. This pushes the estimates of the first month down, and of later windows slightly up. It biases the paper only if the paper's adjustment for calendar period did not remove the change; the paper does not give its calendar periods. The published rates before and after 11 March 2022 also do not show that every outcome rose at once, as the simulation assumes.
 
 ### What each source does in the simulation
 
-`Bias.R` switches the four sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does. Unmeasured risk and selection are switched together: frailty is the unmeasured risk, and selection works through it.
+`Bias.R` switches the five sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does. Unmeasured risk and selection are switched together: frailty is the unmeasured risk, and selection works through it.
 
 ```{r}
 bz <- readRDS("results/bias.rds")
@@ -159,52 +161,95 @@ pi_hi <- function(w) stp[window == w & step == tail(bz$step_lev, 1), gm * exp(h)
 LAST <- tail(bz$step_lev, 1)
 ```
 
-The figure starts with the four sources off: the paper's analysis of a simulated cohort in which all four are switched off. It then adds them one at a time. Each point is the geometric mean of the 12 outcomes over the `r length(cfg$seeds)` simulated cohorts. Each bar is the 95% prediction interval for one study of this size.
+There is one figure per window. Each starts with the five sources off: the paper's analysis of a simulated cohort in which all five are switched off. It then adds them one at a time. The selection steps are alternatives of increasing strength, not further additions. Each point is the geometric mean of the outcomes over the `r length(cfg$seeds)` simulated cohorts: all 12 outcomes, except in day 0-1, where only `r bz$true_w[window == 1L, n_out]` outcomes have an estimate in every cohort. Each bar is the 95% prediction interval for one study of this size.
 
-![The estimate as the sources of bias are added one at a time, per window](figures/bias_steps.png)
+#### Day 0-1
+
+![Day 0-1](figures/bias_steps_w1.png)
+
+#### Day 2 to <1 month
+
+![Day 2 to <1 month](figures/bias_steps_w2.png)
+
+#### 1 to 5 months
+
+![1 to 5 months](figures/bias_steps_w3.png)
+
+#### 6 to 11 months
+
+![6 to 11 months](figures/bias_steps_w4.png)
+
+#### 12 months or more
+
+![12 months or more](figures/bias_steps_w5.png)
+
+#### All windows
 
 ```{r}
 tb <- dcast(stp, k + step ~ window, value.var = "gm")[order(k)]
 knitr::kable(
   tb[, .(
     Step = step,
+    "Day 0-1" = f2(`1`),
     "Day 2 to <1 month" = f2(`2`),
     "1 to 5 months" = f2(`3`),
     "6 to 11 months" = f2(`4`),
     "12 months or more" = f2(`5`)
   )],
   format = "pipe",
-  align = "lrrrr"
+  align = "lrrrrr"
 )
 ```
 
-- **12 months or more:** with the four sources off, the estimate is about the true value (`r sv(5, "Four sources off")` against `r sv(5, "True")`). Unrecorded infections bring it to `r sv(5, "+ unrecorded infections")`, unmeasured risk to `r sv(5, "+ unmeasured risk")`, and selection to `r sv(5, LAST)`.
-- **1 to 5 and 6 to 11 months:** the largest step is unrecorded infections (to `r sv(3, "+ unrecorded infections")` and `r sv(4, "+ unrecorded infections")`). The simulation ends at `r sv(3, LAST)` and `r sv(4, LAST)`, against `r f2(r$pooled[window == 3L, pub])` and `r f2(r$pooled[window == 4L, pub])` published. At 1 to 5 months the published value is below the prediction interval of the last step (`r f2(pi_lo(3))` to `r f2(pi_hi(3))`): in that window the published geometric mean lies outside the simulation's 95% prediction interval.
-- **Day 2 to <1 month:** most of the fall happens with the four sources off, in the analysis itself (`r sv(2, "True")` to `r sv(2, "Four sources off")`).
-- **Stopping at the first CVD diagnosis,** added first, changes the estimate by at most `r pct(stp[step %in% c("Four sources off", "+ stop at first CVD"), .(d = abs(gm[step == "+ stop at first CVD"] / gm[step == "Four sources off"] - 1)), by = window][, max(d)])` in any window.
+- **12 months or more:** with the five sources off, the estimate is close to the true value (`r sv(5, "Five sources off")` against `r sv(5, "True")`). The rise in March 2022 moves it up, to `r sv(5, "+ rise in March 2022")`. Unrecorded infections bring it to `r sv(5, "+ unrecorded infections")`, unmeasured risk to `r sv(5, "+ unmeasured risk")`, and selection of the strongest strength to `r sv(5, LAST)`.
+- **1 to 5 and 6 to 11 months:** the largest step is unrecorded infections (to `r sv(3, "+ unrecorded infections")` and `r sv(4, "+ unrecorded infections")`). The simulation ends at `r sv(3, LAST)` and `r sv(4, LAST)`, against `r f2(r$pooled[window == 3L, pub])` and `r f2(r$pooled[window == 4L, pub])` published. At 1 to 5 months the published value is below the prediction interval of the last step (`r f2(pi_lo(3))` to `r f2(pi_hi(3))`).
+- **Day 0-1 and day 2 to <1 month:** the rise in March 2022 moves these estimates down. With all five sources off they are still below the true values (`r sv(1, "Five sources off")` against `r sv(1, "True")`, and `r sv(2, "Five sources off")` against `r sv(2, "True")`). One reason is persons infected before their follow-up started: the paper starts follow-up 30 days after the first test, so for a person whose first test was positive, the early windows lie about a month after infection, when the effect is smaller.
+- **Stopping at the first CVD diagnosis** (depletion across outcomes) changes the estimate by at most `r pct(stp[step %in% c("+ rise in March 2022", "+ stop at first CVD"), .(d = abs(gm[step == "+ stop at first CVD"] / gm[step == "+ rise in March 2022"] - 1)), by = window][, max(d)])` in any window, when added after the rise in March 2022.
 
 Frailty is the cardiovascular risk that age does not explain. Without selection, persons with a recorded infection before the Omicron wave have `r pct(-st[pf == 0, lower])` higher mean frailty than persons with a recorded infection later. Each selection step gives the resulting difference: at `r pct(st[pf == 0.025, lower], 0)` lower mean frailty, the estimate at 12 months or more is already below 1.
 
-The order of the steps is a choice. It changes the size of each step, but not the first or last point. The table below does not depend on the order. For each source, it gives the factor by which adding the source multiplies the estimate, as a geometric mean over all orders in which the four sources can be added. This is exp(-phi), where phi is the source's Shapley contribution on the log scale. Unmeasured risk and selection are added together here.
+The order of the steps is a choice. It changes the size of each step, but not the first or last point. The table below does not depend on the order. For each source, it gives the factor by which adding the source multiplies the estimate, as a geometric mean over all orders in which the five sources can be added. This is exp(-phi), where phi is the source's Shapley contribution on the log scale. Unmeasured risk and selection are added together here.
 
 ```{r}
 mt <- dcast(sht, source ~ window, value.var = "phi")
-mt <- mt[match(c("cens", "unrec", "dai", "risk"), source)]
-lab <- c(cens = "Stopping at the first CVD diagnosis", unrec = "Unrecorded infections", dai = "Deaths at infection", risk = "Unmeasured risk and selection")
+mt <- mt[match(c("step", "cens", "unrec", "dai", "risk"), source)]
+lab <- c(step = "Rise in CVD rates in March 2022", cens = "Stopping at the first CVD diagnosis", unrec = "Unrecorded infections", dai = "Deaths at infection", risk = "Unmeasured risk and selection")
 knitr::kable(
   mt[, .(
     Source = lab[source],
+    "Day 0-1" = f2(exp(-`1`)),
     "Day 2 to <1 month" = f2(exp(-`2`)),
     "1 to 5 months" = f2(exp(-`3`)),
     "6 to 11 months" = f2(exp(-`4`)),
     "12 months or more" = f2(exp(-`5`))
   )],
   format = "pipe",
-  align = "lrrrr"
+  align = "lrrrrr"
 )
 ```
 
 The decomposition describes the simulated model. It does not measure the sources of bias in the cohort of Boyd et al.
+
+### What the paper's own estimates say
+
+```{r}
+vt <- bz$var_tab
+pre <- vt[variant != "Omicron"]
+```
+
+The estimates at 12 months or more come only from persons infected in 2020 and 2021. The paper also gives, in its Supplementary Table 5, hazard ratios for 1 to 12 months by variant. For the 12 outcomes, their geometric mean is `r paste(sprintf("%s for the %s", f2(pre$published_12), c("original strain", "alpha variant", "delta variant")), collapse = ", ")`. So, averaged over the outcomes, persons infected before the Omicron wave show no lower risk in their first year, although single outcomes vary (heart failure is already 0.61 for the original strain). At 12 months or more, when only persons infected in 2020 and 2021 contribute, the geometric mean is `r f2(r$pooled[window == 5L, pub])`. The two summaries come from different analyses and do not cover exactly the same persons, so they cannot show when the inverse associations begin. But they show no protection in the first year, and inverse associations in the later category. That pattern fits a bias that builds up during follow-up, such as depletion of susceptibles or a comparison group that changes as most of the population was infected in 2022, better than it fits a protective effect of infection.
+
+The simulation's selection into early infection does not reproduce this pattern. It makes persons infected before the Omicron wave less frail from the start, so their simulated estimates for 1 to 12 months are already low: `r paste(f2(range(pre$sim)), collapse = " to ")`, against `r paste(f2(range(pre$published)), collapse = " to ")` published, over the `r paste(range(pre$n_out), collapse = " to ")` outcomes with an estimate in every simulated cohort. For the Omicron variant the simulation gives `r f2(vt[variant == "Omicron", sim])`, against `r f2(vt[variant == "Omicron", published])` published. So the simulation shows that the published estimates are compatible with harmful true effects, and which kinds of bias can produce estimates like them. It does not show which of them produced the estimates in the paper.
+
+### What the simulation leaves out
+
+These mechanisms are not in the simulation. Each could move the paper's estimates:
+
+- **Washout selection:** follow-up starts 30 days after the first test, and persons with a CVD diagnosis before then are excluded. For persons whose first test was positive, the acute phase falls inside those 30 days, so the infected persons who had a CVD event or died then never enter the study. This removes high-risk infected persons and could push the estimates down; the comparison group's entry is selected too, so the net direction is not certain.
+- **Testing at hospital contact:** persons admitted with a CVD event were tested on arrival, so a positive test and a diagnosis can fall on the same day. This could push the day 0-1 estimates up. The paper names it as the likely cause of its day 0-1 results.
+- **Vaccination:** infections in 2020 and early 2021 came before most people were vaccinated, and were on average more severe. Stronger acute effects could remove more high-risk persons early, and push the later estimates down.
+- **Reinfections:** the simulation has first infections only.
+- **Changes in health care in 2020 and 2021:** delayed or caught-up diagnoses can move the estimates either way.
 
 ## The model
 
@@ -325,7 +370,7 @@ The Erikstrup comparison is weak. Erikstrup counts healthy blood donors aged 17-
 The simulation result depends on these assumptions:
 
 - **The true hazard ratios are fitted to the published estimates.** The simulation shows that bias can produce the published estimates from harmful true effects. It does not show that the fitted hazard ratios are the true effects of infection.
-- **The selection into early infection is assumed.** At `pre_frailty` `r cfg$pre_frailty`, persons with a recorded infection before the Omicron wave are less frail than persons infected later. Over the `r length(cfg$seeds)` cohorts, the ratio of mean frailty is `r sprintf("%.2f", r$sel_ratio["all", "u"])`. Frailty is the unrecorded cardiovascular risk of persons of the same age. The ratio of modelled baseline CVD rates, which includes age, is `r sprintf("%.2f", r$sel_ratio["all", "rate"])`. No source measures this in the cohort.
+- **The selection into early infection is assumed.** At `pre_frailty` `r cfg$pre_frailty`, persons with a recorded infection before the Omicron wave are less frail than persons infected later. Over the `r length(cfg$seeds)` cohorts, the ratio of mean frailty is `r sprintf("%.2f", r$sel_ratio["all", "u"])`. Frailty is the unrecorded cardiovascular risk of persons of the same age. The ratio of modelled baseline CVD rates, which includes age, is `r sprintf("%.2f", r$sel_ratio["all", "rate"])`. No source measures this in the cohort, and the paper's variant-stratified estimates do not support it in this form: see [What the paper's own estimates say](#what-the-papers-own-estimates-say).
 - **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during one Omicron wave. The model applies it to all ages and the whole study period.
 - **The frailty SD of `r cfg$fsd` is assumed.** At the same age, the 95th percentile of the hazard multiplier is `r f1(exp(2 * qnorm(0.95) * cfg$fsd))` times the 5th. The same frailty drives every outcome, death and death at infection, so these risks rise together.
 - **The timing weights `r f2(cfg$detect_early)` and `r f2(cfg$detect_late)`, the death hazard and the death at infection are assumed.**

@@ -9,7 +9,7 @@ Boyd et al. 2026, “SARS-CoV-2 infection and long-term risk of cardiovascular 
 The sections are:
 
 1.  [Result](#result): the simulated study reproduces the published estimates from harmful true effects, with the values per outcome.
-2.  [Why the estimates fall below 1](#why-the-estimates-fall-below-1): what each source of bias contributes, and how much selection is needed.
+2.  [Why the estimates fall below 1](#why-the-estimates-fall-below-1): how each source of bias works, what it does in the simulation, and what the paper’s own estimates say.
 3.  [The model](#the-model) and [how the simulated cohort matches the paper](#how-the-simulated-cohort-matches-the-paper).
 4.  [Assumptions and limits](#assumptions-and-limits).
 5.  [Supplement: Norwegian national data from NIPH/FHI](#supplement-norwegian-national-data-from-niphfhi).
@@ -177,17 +177,17 @@ The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows 
 
 ### How each source of bias works
 
-The four examples below use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person’s risk of a CVD diagnosis by 1.20. Over the follow-up, a high-risk person has a 50% risk and a low-risk person a 5% risk. So the true ratio of risks is 1.20 in every example, and each example gives the ratio of risks that a study would see. This is simpler than the hazard ratios of the simulation, but the mechanisms are the same. `Illustrations.R` draws them.
+The four examples below use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person’s risk of a CVD diagnosis by 1.20. Over the follow-up, a high-risk person has a 50% risk and a low-risk person a 5% risk. So the true ratio of risks is 1.20 within each risk group in every example, and each example gives the ratio of risks that a study would see. In the depletion example the risks are per year. This is simpler than the hazard ratios of the simulation, but the mechanisms are the same. `Illustrations.R` draws them.
 
-**Selection into early infection.** If persons at high risk took more care early in the pandemic, fewer of them were infected before the Omicron wave. Infection raises everyone’s risk, but the infected group starts with fewer high-risk persons. The study would see 0.79.
+**Selection into early infection.** If persons at high risk took more care early in the pandemic, fewer of them were infected before the Omicron wave. Infection raises everyone’s risk, but the infected group starts with fewer high-risk persons. The paper’s own estimates do not support this mechanism in a simple form (see below). The study would see 0.81.
 
 ![Selection into early infection](figures/illustration_selection.png)
 
-**Depletion of susceptibles.** Infection brings diagnoses forward, most of all in high-risk persons. A year later, the infected persons who are still free of CVD include fewer high-risk persons than the comparison group does. The study would see 1.15.
+**Depletion of susceptibles, over time and across outcomes.** Both groups start with the same 100 persons, followed for two years. A person diagnosed with CVD in year 1 is no longer free of CVD, so they leave the comparison. Infection brings diagnoses forward, most of all in high-risk persons, so in year 2 the infected group has fewer high-risk persons left. Year 1 shows about the true ratio; year 2 does not. The same removal happens across outcomes: the paper stops follow-up for every outcome at a person’s first diagnosis in any of the 15 cardiovascular groups, so a diagnosis of one outcome removes the person from the comparisons of all the others. The study would see 1.10.
 
-![Depletion of susceptibles](figures/illustration_depletion.png)
+![Depletion of susceptibles, over time and across outcomes](figures/illustration_depletion.png)
 
-**Unrecorded infections.** About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group. In the example, 50 of 150 infections are unrecorded. Their raised risk makes the comparison group look worse. The study would see 1.13.
+**Unrecorded infections.** About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group. In the example, 50 of 150 infections are unrecorded. Their raised risk makes the comparison group look worse. The study would see 1.09.
 
 ![Unrecorded infections](figures/illustration_unrecorded.png)
 
@@ -195,47 +195,87 @@ The four examples below use 100 persons per group, and illustrative numbers rath
 
 ![Deaths at infection](figures/illustration_deaths.png)
 
-**Stopping at the first CVD diagnosis.** The paper stops follow-up for every outcome at a person’s first diagnosis in any of the 15 cardiovascular groups. It removes high-risk persons from both groups, so in the simulation it changes the estimates very little.
+In the simulation, depletion over time works through the unmeasured risk. Depletion across outcomes, stopping at the first CVD diagnosis, changes the estimates very little, because it removes high-risk persons from both groups.
+
+**Rise in CVD rates in March 2022.** In the paper, the CVD rate among test-negative persons rose from 8.1 per 1000 person-years before 11 March 2022 to 10.9 after it. The simulation reproduces this with a rise in every CVD hazard on that day. Its analysis adjusts for calendar year only, so it treats all of 2022 as one period. In the simulated cohort, 70% of recorded infections fall in December 2021 to February 2022, so their first months after infection fall mostly before the rise, while much of the comparison group’s 2022 follow-up falls after it. The comparison group then looks riskier for a reason that has nothing to do with infection. This pushes the estimates of the first month down, and of later windows slightly up. It biases the paper only if the paper’s adjustment for calendar period did not remove the change; the paper does not give its calendar periods. The published rates before and after 11 March 2022 also do not show that every outcome rose at once, as the simulation assumes.
 
 ### What each source does in the simulation
 
-`Bias.R` switches the four sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does. Unmeasured risk and selection are switched together: frailty is the unmeasured risk, and selection works through it.
+`Bias.R` switches the five sources of bias on and off in the simulated cohorts, and analyses each setting as the paper does. Unmeasured risk and selection are switched together: frailty is the unmeasured risk, and selection works through it.
 
-The figure starts with the four sources off: the paper’s analysis of a simulated cohort in which all four are switched off. It then adds them one at a time. Each point is the geometric mean of the 12 outcomes over the 10 simulated cohorts. Each bar is the 95% prediction interval for one study of this size.
+There is one figure per window. Each starts with the five sources off: the paper’s analysis of a simulated cohort in which all five are switched off. It then adds them one at a time. The selection steps are alternatives of increasing strength, not further additions. Each point is the geometric mean of the outcomes over the 10 simulated cohorts: all 12 outcomes, except in day 0-1, where only 6 outcomes have an estimate in every cohort. Each bar is the 95% prediction interval for one study of this size.
 
-![The estimate as the sources of bias are added one at a time, per window](figures/bias_steps.png)
+#### Day 0-1
 
-| Step | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
-|:---|---:|---:|---:|---:|
-| True | 1.42 | 1.12 | 1.09 | 1.09 |
-| Four sources off | 1.29 | 1.12 | 1.11 | 1.10 |
-| \+ stop at first CVD | 1.29 | 1.13 | 1.12 | 1.09 |
-| \+ unrecorded infections | 1.23 | 1.06 | 1.06 | 1.03 |
-| \+ deaths at infection | 1.22 | 1.07 | 1.05 | 1.03 |
-| \+ unmeasured risk | 1.29 | 1.07 | 1.02 | 1.00 |
-| \+ selection, 2% | 1.29 | 1.06 | 1.02 | 0.97 |
-| \+ selection, 6% | 1.29 | 1.07 | 1.01 | 0.95 |
-| \+ selection, 10% | 1.25 | 1.06 | 1.00 | 0.92 |
-| \+ selection, 13% | 1.27 | 1.06 | 1.00 | 0.89 |
-| \+ selection, 20% | 1.25 | 1.05 | 1.00 | 0.82 |
+![Day 0-1](figures/bias_steps_w1.png)
 
-- **12 months or more:** with the four sources off, the estimate is about the true value (1.10 against 1.09). Unrecorded infections bring it to 1.03, unmeasured risk to 1.00, and selection to 0.82.
-- **1 to 5 and 6 to 11 months:** the largest step is unrecorded infections (to 1.06 and 1.06). The simulation ends at 1.05 and 1.00, against 1.00 and 0.98 published. At 1 to 5 months the published value is below the prediction interval of the last step (1.01 to 1.10): in that window the published geometric mean lies outside the simulation’s 95% prediction interval.
-- **Day 2 to \<1 month:** most of the fall happens with the four sources off, in the analysis itself (1.42 to 1.29).
-- **Stopping at the first CVD diagnosis,** added first, changes the estimate by at most 0.3% in any window.
+#### Day 2 to \<1 month
+
+![Day 2 to \<1 month](figures/bias_steps_w2.png)
+
+#### 1 to 5 months
+
+![1 to 5 months](figures/bias_steps_w3.png)
+
+#### 6 to 11 months
+
+![6 to 11 months](figures/bias_steps_w4.png)
+
+#### 12 months or more
+
+![12 months or more](figures/bias_steps_w5.png)
+
+#### All windows
+
+| Step | Day 0-1 | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
+|:---|---:|---:|---:|---:|---:|
+| True | 11.94 | 1.42 | 1.12 | 1.09 | 1.09 |
+| Five sources off | 10.47 | 1.36 | 1.11 | 1.09 | 1.07 |
+| \+ rise in March 2022 | 9.60 | 1.29 | 1.12 | 1.11 | 1.10 |
+| \+ stop at first CVD | 9.61 | 1.29 | 1.13 | 1.12 | 1.09 |
+| \+ unrecorded infections | 9.04 | 1.23 | 1.06 | 1.06 | 1.03 |
+| \+ deaths at infection | 9.16 | 1.22 | 1.07 | 1.05 | 1.03 |
+| \+ unmeasured risk | 9.37 | 1.29 | 1.07 | 1.02 | 1.00 |
+| with selection, 2% | 9.40 | 1.29 | 1.06 | 1.02 | 0.97 |
+| with selection, 6% | 9.22 | 1.29 | 1.07 | 1.01 | 0.95 |
+| with selection, 10% | 9.35 | 1.25 | 1.06 | 1.00 | 0.92 |
+| with selection, 13% | 9.29 | 1.27 | 1.06 | 1.00 | 0.89 |
+| with selection, 20% | 9.21 | 1.25 | 1.05 | 1.00 | 0.82 |
+
+- **12 months or more:** with the five sources off, the estimate is close to the true value (1.07 against 1.09). The rise in March 2022 moves it up, to 1.10. Unrecorded infections bring it to 1.03, unmeasured risk to 1.00, and selection of the strongest strength to 0.82.
+- **1 to 5 and 6 to 11 months:** the largest step is unrecorded infections (to 1.06 and 1.06). The simulation ends at 1.05 and 1.00, against 1.00 and 0.98 published. At 1 to 5 months the published value is below the prediction interval of the last step (1.01 to 1.10).
+- **Day 0-1 and day 2 to \<1 month:** the rise in March 2022 moves these estimates down. With all five sources off they are still below the true values (10.47 against 11.94, and 1.36 against 1.42). One reason is persons infected before their follow-up started: the paper starts follow-up 30 days after the first test, so for a person whose first test was positive, the early windows lie about a month after infection, when the effect is smaller.
+- **Stopping at the first CVD diagnosis** (depletion across outcomes) changes the estimate by at most 0.3% in any window, when added after the rise in March 2022.
 
 Frailty is the cardiovascular risk that age does not explain. Without selection, persons with a recorded infection before the Omicron wave have 1.9% higher mean frailty than persons with a recorded infection later. Each selection step gives the resulting difference: at 2% lower mean frailty, the estimate at 12 months or more is already below 1.
 
-The order of the steps is a choice. It changes the size of each step, but not the first or last point. The table below does not depend on the order. For each source, it gives the factor by which adding the source multiplies the estimate, as a geometric mean over all orders in which the four sources can be added. This is exp(-phi), where phi is the source’s Shapley contribution on the log scale. Unmeasured risk and selection are added together here.
+The order of the steps is a choice. It changes the size of each step, but not the first or last point. The table below does not depend on the order. For each source, it gives the factor by which adding the source multiplies the estimate, as a geometric mean over all orders in which the five sources can be added. This is exp(-phi), where phi is the source’s Shapley contribution on the log scale. Unmeasured risk and selection are added together here.
 
-| Source | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
-|:---|---:|---:|---:|---:|
-| Stopping at the first CVD diagnosis | 1.01 | 1.01 | 1.00 | 1.00 |
-| Unrecorded infections | 0.96 | 0.95 | 0.95 | 0.95 |
-| Deaths at infection | 0.98 | 0.99 | 0.99 | 1.00 |
-| Unmeasured risk and selection | 1.02 | 0.99 | 0.96 | 0.80 |
+| Source | Day 0-1 | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
+|:---|---:|---:|---:|---:|---:|
+| Rise in CVD rates in March 2022 | 0.93 | 0.94 | 1.02 | 1.03 | 1.02 |
+| Stopping at the first CVD diagnosis | 1.01 | 1.01 | 1.01 | 1.00 | 1.00 |
+| Unrecorded infections | 0.94 | 0.95 | 0.95 | 0.95 | 0.95 |
+| Deaths at infection | 0.98 | 0.98 | 0.99 | 0.99 | 1.00 |
+| Unmeasured risk and selection | 1.03 | 1.02 | 0.99 | 0.96 | 0.80 |
 
 The decomposition describes the simulated model. It does not measure the sources of bias in the cohort of Boyd et al.
+
+### What the paper’s own estimates say
+
+The estimates at 12 months or more come only from persons infected in 2020 and 2021. The paper also gives, in its Supplementary Table 5, hazard ratios for 1 to 12 months by variant. For the 12 outcomes, their geometric mean is 1.00 for the original strain, 1.02 for the alpha variant, 1.05 for the delta variant. So, averaged over the outcomes, persons infected before the Omicron wave show no lower risk in their first year, although single outcomes vary (heart failure is already 0.61 for the original strain). At 12 months or more, when only persons infected in 2020 and 2021 contribute, the geometric mean is 0.82. The two summaries come from different analyses and do not cover exactly the same persons, so they cannot show when the inverse associations begin. But they show no protection in the first year, and inverse associations in the later category. That pattern fits a bias that builds up during follow-up, such as depletion of susceptibles or a comparison group that changes as most of the population was infected in 2022, better than it fits a protective effect of infection.
+
+The simulation’s selection into early infection does not reproduce this pattern. It makes persons infected before the Omicron wave less frail from the start, so their simulated estimates for 1 to 12 months are already low: 0.82 to 0.88, against 0.97 to 1.01 published, over the 10 to 11 outcomes with an estimate in every simulated cohort. For the Omicron variant the simulation gives 1.09, against 0.97 published. So the simulation shows that the published estimates are compatible with harmful true effects, and which kinds of bias can produce estimates like them. It does not show which of them produced the estimates in the paper.
+
+### What the simulation leaves out
+
+These mechanisms are not in the simulation. Each could move the paper’s estimates:
+
+- **Washout selection:** follow-up starts 30 days after the first test, and persons with a CVD diagnosis before then are excluded. For persons whose first test was positive, the acute phase falls inside those 30 days, so the infected persons who had a CVD event or died then never enter the study. This removes high-risk infected persons and could push the estimates down; the comparison group’s entry is selected too, so the net direction is not certain.
+- **Testing at hospital contact:** persons admitted with a CVD event were tested on arrival, so a positive test and a diagnosis can fall on the same day. This could push the day 0-1 estimates up. The paper names it as the likely cause of its day 0-1 results.
+- **Vaccination:** infections in 2020 and early 2021 came before most people were vaccinated, and were on average more severe. Stronger acute effects could remove more high-risk persons early, and push the later estimates down.
+- **Reinfections:** the simulation has first infections only.
+- **Changes in health care in 2020 and 2021:** delayed or caught-up diagnoses can move the estimates either way.
 
 ## The model
 
@@ -301,7 +341,7 @@ The Erikstrup comparison is weak. Erikstrup counts healthy blood donors aged 17-
 The simulation result depends on these assumptions:
 
 - **The true hazard ratios are fitted to the published estimates.** The simulation shows that bias can produce the published estimates from harmful true effects. It does not show that the fitted hazard ratios are the true effects of infection.
-- **The selection into early infection is assumed.** At `pre_frailty` 0.15, persons with a recorded infection before the Omicron wave are less frail than persons infected later. Over the 10 cohorts, the ratio of mean frailty is 0.80. Frailty is the unrecorded cardiovascular risk of persons of the same age. The ratio of modelled baseline CVD rates, which includes age, is 0.91. No source measures this in the cohort.
+- **The selection into early infection is assumed.** At `pre_frailty` 0.15, persons with a recorded infection before the Omicron wave are less frail than persons infected later. Over the 10 cohorts, the ratio of mean frailty is 0.80. Frailty is the unrecorded cardiovascular risk of persons of the same age. The ratio of modelled baseline CVD rates, which includes age, is 0.91. No source measures this in the cohort, and the paper’s variant-stratified estimates do not support it in this form: see [What the paper’s own estimates say](#what-the-papers-own-estimates-say).
 - **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during one Omicron wave. The model applies it to all ages and the whole study period.
 - **The frailty SD of 1.65 is assumed.** At the same age, the 95th percentile of the hazard multiplier is 227.7 times the 5th. The same frailty drives every outcome, death and death at infection, so these risks rise together.
 - **The timing weights 0.40 and 0.05, the death hazard and the death at infection are assumed.**
