@@ -141,6 +141,7 @@ Each point is the simulated average, with its 95% prediction interval for one st
 | \+ unrecorded infections | 8.87 | 1.43 | 1.18 | 1.16 | 1.04 |
 | \+ depletion of susceptibles | 9.15 | 1.46 | 1.18 | 1.10 | 0.98 |
 | \+ avoidance of infection | 7.91 | 1.23 | 1.01 | 0.94 | 0.83 |
+| Published | 7.77 | 1.20 | 1.00 | 0.98 | 0.82 |
 
 In the first month, the estimate with all biases off is already below the true value. The paper starts follow-up 30 days after the first test, so for a person whose first test was positive, these windows lie about a month after infection.
 

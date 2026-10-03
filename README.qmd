@@ -205,7 +205,7 @@ In the paper, `r pct(1 - r$pub_py[6, "t7"] / r$pub_py[6, "t1"], 0)` of the perso
 Each point is the simulated average, with its 95% prediction interval for one study. At day 0-1, `r bz$true_w[window == 1L, n_out]` outcomes have an estimate in every cohort. The order of the steps changes the size of each step, but not the first or last point.
 
 ```{r}
-tb <- dcast(stp, k + step ~ window, value.var = "gm")[order(k)]
+tb <- dcast(rbind(stp[, .(k, step, window, gm)], bz$true_w[, .(k = 99L, step = "Published", window, gm = pub)]), k + step ~ window, value.var = "gm")[order(k)]
 knitr::kable(
   tb[, .(
     Step = step,
