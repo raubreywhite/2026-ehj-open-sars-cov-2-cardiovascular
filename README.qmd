@@ -94,7 +94,7 @@ The two patterns point to bias, not protection. The persons infected in 2020 and
 1. **Cohort.** `Run.R` simulates `r n_seed` cohorts of `r f0(cfg$n)` persons, the size of the paper's cardiovascular cohort, with its age distribution and follow-up from 1 March 2020 to 31 December 2022.
 2. **Infections.** `r f0(cfg$p_infected * cfg$n)` persons get a recorded infection, as in the paper, at dates that follow the Danish national case counts. One third of all infections are unrecorded. Persons with a higher underlying cardiovascular risk are less likely to be infected (avoidance of infection).
 3. **True effects.** Each infection, recorded or unrecorded, multiplies the person's hazard of each of 15 cardiovascular outcomes by a true hazard ratio for each time window. Every true hazard ratio is at least 1.01, so infection is harmful for every outcome in every window.
-4. **Biases.** Five features of the data can move the estimates away from the true hazard ratios: differences in underlying risk between persons of the same age, avoidance of infection, unrecorded infections, deaths caused by infection, and the end of follow-up at a person's first diagnosis of any of the 15 outcomes.
+4. **Biases.** Five features of the data can move the estimates away from the true hazard ratios: depletion of susceptibles, avoidance of infection, unrecorded infections, deaths caused by infection, and the end of follow-up at a person's first diagnosis of any of the 15 outcomes.
 5. **Analysis.** Each cohort is analysed as the paper does, approximately: person-time is split by time window, 5-year age band and calendar year, and one Poisson model per outcome gives the estimated hazard ratios.
 
 The true hazard ratios are fitted: they are the values for which the estimated hazard ratios match the published ones, under the rule that a true hazard ratio is at least 1.01 and does not increase with time since infection. [The model](#the-model) gives every input and its source.
@@ -157,39 +157,64 @@ The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows 
 
 ```{r}
 seen <- function(k) f2(il$ratio[panel == k, tail(seen, 1)])
+stp <- bz$steps
+LAST <- tail(bz$step_lev, 1)
+DEPL <- "+ depletion of susceptibles"
+sv <- function(w, lab) f2(stp[window == w & step == lab, gm])
+chg <- function(a, b) if (sv(5, a) == sv(5, b)) sprintf("leaves the estimate at %s", sv(5, b)) else sprintf("changes the estimate from %s to %s", sv(5, a), sv(5, b))
 ```
 
 The four examples use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person's risk of a cardiovascular diagnosis by `r f2(il$cfg$hr)`. A high-risk person has a `r pct(il$cfg$risk[["high"]], 0)` risk and a low-risk person a `r pct(il$cfg$risk[["low"]], 0)` risk. So the true ratio of risks is `r f2(il$cfg$hr)` in every example. Each example gives the ratio that a study would see. `Illustrations.R` draws them.
 
+After each example comes the size of the bias in the simulation: how the estimate at 12 months or more changes when the bias is added. The biases are added in the order of the figures in [the next section](#what-each-bias-does-in-the-simulation), and each value is the geometric mean over the `r n_out` outcomes.
+
 **Higher-risk persons avoid infection.** If persons at high underlying risk are more careful, fewer of them are infected. By 2022, when most of the population had been infected, those still uninfected include a larger share of high-risk persons. The comparison group then looks riskier than the infected group, for a reason that has nothing to do with infection. The study would see `r seen("Higher-risk persons avoid infection")`.
+
+In the simulation, avoidance of infection lowers the estimate from `r sv(5, DEPL)` to `r sv(5, LAST)`. It is the largest bias.
 
 ![Higher-risk persons avoid infection](figures/illustration_avoidance.png)
 
 **Depletion of susceptibles.** Both groups start with the same 100 persons, followed for two years. A person diagnosed in year 1 is no longer free of cardiovascular disease, so they leave the comparison. Infection brings diagnoses forward, most of all in high-risk persons, so in year 2 the infected group has fewer high-risk persons left. Year 1 shows the true ratio, and year 2 shows `r seen("Depletion of susceptibles")`.
 
+In the simulation, depletion of susceptibles lowers the estimate from `r sv(5, "+ deaths caused by infection")` to `r sv(5, DEPL)`. Adding it also lets deaths caused by infection fall on the persons at highest risk. The effect grows with time since infection, as depletion does:
+
+```{r}
+dp <- dcast(stp[step %in% c("+ deaths caused by infection", DEPL) & window >= 3L], window ~ step, value.var = "gm")
+knitr::kable(
+  data.table(
+    "Time window" = WL[dp$window],
+    "Before" = f2(dp[["+ deaths caused by infection"]]),
+    "After" = f2(dp[[DEPL]])
+  ),
+  format = "pipe",
+  align = "lrr"
+)
+```
+
 ![Depletion of susceptibles](figures/illustration_depletion.png)
 
 **Unrecorded infections.** About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group. In the example, 50 of 150 infections are unrecorded. Their raised risk makes the comparison group look worse. The study would see `r seen("Unrecorded infections")`.
+
+In the simulation, unrecorded infections lower the estimate from `r sv(5, "+ stop at first diagnosis of any outcome")` to `r sv(5, "+ unrecorded infections")`.
 
 ![Unrecorded infections](figures/illustration_unrecorded.png)
 
 **Deaths caused by infection.** Infection kills some of the persons at the highest risk before they can be diagnosed. The infected group loses some of its highest-risk persons. The study would see `r seen("Deaths at infection")`.
 
+In the simulation, adding deaths caused by infection `r chg("+ unrecorded infections", "+ deaths caused by infection")`.
+
 ![Deaths caused by infection](figures/illustration_deaths.png)
 
-**Stopping at the first diagnosis of any outcome.** The paper stops follow-up for every outcome at a person's first diagnosis in any of the 15 cardiovascular groups. A diagnosis of one outcome therefore removes the person from the comparisons of all the others. This is depletion across outcomes. It removes high-risk persons from both groups, and in the simulation it changes the estimates very little.
+**Stopping at the first diagnosis of any outcome.** The paper stops follow-up for every outcome at a person's first diagnosis in any of the 15 cardiovascular groups. A diagnosis of one outcome therefore removes the person from the comparisons of all the others. This is depletion across outcomes. It removes high-risk persons from both groups. In the simulation, it `r chg("All biases off", "+ stop at first diagnosis of any outcome")`.
 
 ### What each bias does in the simulation
 
 ```{r}
-stp <- bz$steps
 av <- bz$av_tab
 sht <- bz$shp_tab
-LAST <- tail(bz$step_lev, 1)
-sv <- function(w, lab) f2(stp[window == w & step == lab, gm])
 ```
 
-`Bias.R` switches the biases on and off in the simulated cohorts, with the true hazard ratios unchanged, and analyses each setting as the paper does. Differences in underlying risk and avoidance of infection are switched together, because avoidance works through underlying risk.
+`Bias.R` switches the biases on and off in the simulated cohorts, with the true hazard ratios unchanged, and analyses each setting as the paper does. In the table of contributions below, depletion of susceptibles and avoidance of infection are counted together, because both work through underlying risk.
 
 There is one figure per time window. Each starts with all biases off and adds them one at a time. The last steps are avoidance of increasing strength, and each replaces the step before it. Each label gives the mean underlying risk of the comparison group from 28 August to 31 December 2022, relative to persons after a recorded infection in the same period, both counted until their first cardiovascular diagnosis. It is pooled over ages and time windows, and is not a ratio of cardiovascular risk. Each point is the geometric mean over the outcomes with an estimate in every cohort: all `r n_out`, except at day 0-1, where `r bz$true_w[window == 1L, n_out]` outcomes have one. Each bar is the 95% prediction interval for one study.
 
@@ -231,7 +256,7 @@ knitr::kable(
 )
 ```
 
-- **12 months or more:** with all biases off, the estimate is `r sv(5, "All biases off")`, against a true value of `r sv(5, "True")`. Unrecorded infections bring it to `r sv(5, "+ unrecorded infections")`, differences in underlying risk to `r sv(5, "+ differences in underlying risk")`, and avoidance to `r sv(5, LAST)`.
+- **12 months or more:** with all biases off, the estimate is `r sv(5, "All biases off")`, against a true value of `r sv(5, "True")`. Unrecorded infections bring it to `r sv(5, "+ unrecorded infections")`, depletion of susceptibles to `r sv(5, DEPL)`, and avoidance to `r sv(5, LAST)`.
 - **1 to 5 and 6 to 11 months:** avoidance lowers these windows too, to `r sv(3, LAST)` and `r sv(4, LAST)`. The true values are higher here (`r sv(3, "True")` and `r sv(4, "True")`) than at 12 months or more.
 - **Day 0-1 and day 2 to <1 month:** with all biases off, the estimates are below the true values (`r sv(1, "All biases off")` against `r sv(1, "True")`, and `r sv(2, "All biases off")` against `r sv(2, "True")`). The paper starts follow-up 30 days after the first test. For a person whose first test was positive, the early windows then lie about a month after infection, when the effect is smaller.
 
@@ -240,7 +265,7 @@ The order of the steps is a choice. It changes the size of each step, but not th
 ```{r}
 mt <- dcast(sht, source ~ window, value.var = "phi")
 mt <- mt[match(c("cens", "unrec", "dai", "risk"), source)]
-lab <- c(cens = "Stopping at the first diagnosis of any outcome", unrec = "Unrecorded infections", dai = "Deaths caused by infection", risk = "Differences in underlying risk, with avoidance of infection")
+lab <- c(cens = "Stopping at the first diagnosis of any outcome", unrec = "Unrecorded infections", dai = "Deaths caused by infection", risk = "Depletion of susceptibles, with avoidance of infection")
 knitr::kable(
   mt[, .(
     Bias = lab[source],
@@ -255,7 +280,7 @@ knitr::kable(
 )
 ```
 
-At 12 months or more, the two biases in the comparison group make most of the difference. Differences in underlying risk with avoidance of infection multiply the estimate by `r f2(exp(-mt[source == "risk"][["5"]]))`, and unrecorded infections by `r f2(exp(-mt[source == "unrec"][["5"]]))`. Deaths caused by infection and stopping at the first diagnosis of any outcome each change it by 2% or less.
+At 12 months or more, the two biases in the comparison group make most of the difference. Depletion of susceptibles and avoidance of infection together multiply the estimate by `r f2(exp(-mt[source == "risk"][["5"]]))`, and unrecorded infections by `r f2(exp(-mt[source == "unrec"][["5"]]))`. Deaths caused by infection and stopping at the first diagnosis of any outcome each change it by 2% or less.
 
 ### How avoidance changes the comparison group
 
@@ -283,7 +308,7 @@ The argument needs one thing: that a cohort in which infection is harmful can gi
 
 - **The true hazard ratios are fitted.** They are the values for which the simulated study reproduces the published estimates, so they show what the published estimates are compatible with. Their geometric mean over the `r n_out` outcomes is `r f2(tm_gm("m_1_5"))` at 1 to 5 months, `r f2(tm_gm("m_6_11"))` at 6 to 11 months and `r f2(tm_gm("m_ge12"))` at 12 months or more.
 - **Avoidance of infection is assumed.** No source measures it in the Danish cohort. The strength needed is small: a person with twice the underlying risk has a `r pct(1 - av_double)` lower chance of infection. It was chosen in a screen of model variants, with the true hazard ratios of an earlier fit, to reproduce the Omicron against pre-Omicron contrast of Supplementary Table 5. The screen used seeds 1 to 5, which are also 5 of the `r n_seed` seeds of the results here. Any other mechanism that makes the comparison group riskier during 2022 acts in the same way.
-- **The size of the differences in underlying risk is assumed.** At the same age, the 95th percentile of the underlying risk is `r f1(exp(2 * qnorm(0.95) * cfg$fsd))` times the 5th. It stands for the risk that remains after the paper's adjustment for age, sex and comorbidity. The same underlying risk drives every outcome, death and death caused by infection.
+- **How much underlying risk varies between persons is assumed.** At the same age, the 95th percentile of the underlying risk is `r f1(exp(2 * qnorm(0.95) * cfg$fsd))` times the 5th. It stands for the risk that remains after the paper's adjustment for age, sex and comorbidity. The same underlying risk drives every outcome, death and death caused by infection.
 - **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during the Omicron wave. The model applies it to all ages and the whole study period.
 - **The timing of unrecorded infections, the death hazard and the deaths caused by infection are assumed.**
 - **The analysis approximates the paper's Cox model.** The paper uses age as the time scale and adjusts for sex and comorbidity. The simulation uses Poisson models with 5-year age bands and calendar year. Over 5 years of age, the simulated hazard rises `r f2(2^(5 / 7.5))`-fold, so the bands leave some confounding by age within a band. Sex and comorbidity are not simulated.

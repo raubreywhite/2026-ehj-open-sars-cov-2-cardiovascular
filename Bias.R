@@ -283,7 +283,7 @@ print(knitr::kable(av_tab, format = "pipe", digits = 3))
 ## Steps ----
 # Real simulated settings, adding one source at a time in a fixed order: the
 # four sources off (not censored), then censoring,
-# unrecorded infections, death at infection, differences in underlying risk
+# unrecorded infections, death at infection, depletion of susceptibles (frailty on)
 # without avoidance, and avoidance of increasing strength. The order is a choice: it
 # changes the size of each step, not the first or last point.
 STEPS <- list(
@@ -291,7 +291,7 @@ STEPS <- list(
   list(lab = "+ stop at first diagnosis of any outcome", frail = 0L, unrec = 0L, av = 0, dai = 0L, cens = 1L),
   list(lab = "+ unrecorded infections", frail = 0L, unrec = 1L, av = 0, dai = 0L, cens = 1L),
   list(lab = "+ deaths caused by infection", frail = 0L, unrec = 1L, av = 0, dai = 1L, cens = 1L),
-  list(lab = "+ differences in underlying risk", frail = 1L, unrec = 1L, av = 0, dai = 1L, cens = 1L)
+  list(lab = "+ depletion of susceptibles", frail = 1L, unrec = 1L, av = 0, dai = 1L, cens = 1L)
 )
 for (p in BIAS$av[BIAS$av > 0]) {
   STEPS[[length(STEPS) + 1L]] <- list(
