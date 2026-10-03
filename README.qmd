@@ -167,7 +167,7 @@ At 12 months or more, adding the three biases one at a time to the simulated coh
 | + depletion of susceptibles | `r sv(5, DEPL)` | Pushed below 1 |
 | + avoidance of infection | `r sv(5, AVOID)` | Published: `r f2(bz$true_w[window == 5L, pub])` |
 
-Unrecorded infections only dilute an effect: on their own, they bring the estimate toward 1 but not below it. Depletion of susceptibles and avoidance of infection change who is left in each group, and these can take it below 1.
+In the simulation, unrecorded infections bring the estimate toward 1 but not below it. Depletion of susceptibles and avoidance of infection change who is left in each group, and these can take it below 1.
 
 Each bias below has an example with 100 persons per group. In each example, infection multiplies every person's risk by `r f2(il$cfg$hr)`, so the true ratio is `r f2(il$cfg$hr)`. A high-risk person has a `r pct(il$cfg$risk[["high"]], 0)` risk and a low-risk person a `r pct(il$cfg$risk[["low"]], 0)` risk. After each example, the text gives what the bias does in the simulation at 12 months or more. The biases are added one at a time, in this order.
 

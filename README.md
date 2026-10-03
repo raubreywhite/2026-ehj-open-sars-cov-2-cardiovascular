@@ -101,7 +101,7 @@ At 12 months or more, adding the three biases one at a time to the simulated coh
 | \+ depletion of susceptibles |     0.98 | Pushed below 1          |
 | \+ avoidance of infection    |     0.83 | Published: 0.82         |
 
-Unrecorded infections only dilute an effect: on their own, they bring the estimate toward 1 but not below it. Depletion of susceptibles and avoidance of infection change who is left in each group, and these can take it below 1.
+In the simulation, unrecorded infections bring the estimate toward 1 but not below it. Depletion of susceptibles and avoidance of infection change who is left in each group, and these can take it below 1.
 
 Each bias below has an example with 100 persons per group. In each example, infection multiplies every person’s risk by 1.20, so the true ratio is 1.20. A high-risk person has a 50% risk and a low-risk person a 5% risk. After each example, the text gives what the bias does in the simulation at 12 months or more. The biases are added one at a time, in this order.
 
@@ -373,7 +373,7 @@ The values in the first figure, in its order. The last column is the extra rate 
 From the repository root, with R 4.6, data.table, ggplot2, patchwork and knitr:
 
 1.  `Rscript Run.R`: the main simulation. Each cohort needs about 11 GiB of memory, and it runs 2 at a time, so it needs at least 25 GB free.
-2.  `Rscript Bias.R`: the biases and the analysis by variant. It simulates 140 more cohorts.
+2.  `Rscript Bias.R`: the biases and the analysis by variant. It simulates 90 more cohorts.
 3.  `Rscript Illustrations.R`: the three examples.
 4.  `quarto render README.qmd`: this README, from `results/`.
 
