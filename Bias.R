@@ -8,16 +8,16 @@
 # person-time in the second half of 2022 relative to the whole cohort.
 #
 # Steps: from all biases off to the model of Run.R, adding the three biases
-# one at a time: unrecorded infections, depletion of susceptibles, and
+# one at a time: depletion of susceptibles, unrecorded infections, and
 # avoidance of infection. In day 0-1 some outcomes have fewer than
 # 5 events in some cohorts and no estimate, so each window uses the outcomes
 # with an estimate in every cohort and setting: some of the 12 in day 0-1, all
 # 12 in the other windows. A bias is switched off as follows:
-#   unrec:     unrecorded infections (off: contam 1e-6, about 2 persons; a
-#              share of 0 draws no dates and stops sample());
 #   depletion: frailty and censoring at the first CVD diagnosis of any type
 #              (off: frailty SD 1e-6, as an SD of 0 divides by 0, and each
 #              outcome followed to its own first diagnosis, death or fu);
+#   unrec:     unrecorded infections (off: contam 1e-6, about 2 persons; a
+#              share of 0 draws no dates and stops sample());
 #   avoidance: avoid 0.
 # Death at infection (p80) is on in every step. Its effect is reported
 # separately, as the model of Run.R with and without it.
@@ -105,13 +105,13 @@ cfg_of <- function(frail, unrec, av, dai) {
 }
 
 # PART 1 -- DATA CREATION ====
-# The settings: the avoidance values with all other sources on; frailty off
-# with and without unrecorded infections; and the model of Run.R without death
-# at infection. A setting in both lists appears once.
+# The settings: the avoidance values with all other sources on; all biases
+# off; depletion on alone; and the model of Run.R without death at
+# infection. A setting in both lists appears once.
 set_av <- data.table(frail = 1L, unrec = 1L, av = BIAS$av, dai = 1L)
 set_off <- data.table(
-  frail = c(0L, 0L, 1L),
-  unrec = c(0L, 1L, 1L),
+  frail = c(0L, 1L, 1L),
+  unrec = c(0L, 0L, 1L),
   av = c(0, 0, CFG$avoid),
   dai = c(1L, 1L, 0L)
 )
@@ -226,13 +226,13 @@ cat(
 print(knitr::kable(av_tab, format = "pipe", digits = 3))
 ## Steps ----
 # Real simulated settings, adding one bias at a time in a fixed order: all
-# three off (death at infection on), then unrecorded infections, depletion of
-# susceptibles, and avoidance of infection at the strength of Run.R. The order is a choice: it
+# three off (death at infection on), then depletion of susceptibles,
+# unrecorded infections, and avoidance of infection at the strength of Run.R. The order is a choice: it
 # changes the size of each step, not the first or last point.
 STEPS <- list(
   list(lab = "All biases off", frail = 0L, unrec = 0L, av = 0, dai = 1L, cens = 0L),
-  list(lab = "+ unrecorded infections", frail = 0L, unrec = 1L, av = 0, dai = 1L, cens = 0L),
-  list(lab = "+ depletion of susceptibles", frail = 1L, unrec = 1L, av = 0, dai = 1L, cens = 1L)
+  list(lab = "+ depletion of susceptibles", frail = 1L, unrec = 0L, av = 0, dai = 1L, cens = 1L),
+  list(lab = "+ unrecorded infections", frail = 1L, unrec = 1L, av = 0, dai = 1L, cens = 1L)
 )
 STEPS[[4L]] <- list(lab = "+ avoidance of infection", frail = 1L, unrec = 1L, av = CFG$avoid, dai = 1L, cens = 1L)
 steps <- rbindlist(lapply(seq_along(STEPS), function(k) {

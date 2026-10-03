@@ -39,7 +39,7 @@ These patterns point to bias, not protection. Persons infected in 2020 and 2021 
 1.  **Cohort.** `Run.R` simulates 10 cohorts of 4,508,489 persons, with the paper’s age distribution and follow-up from 1 March 2020 to 31 December 2022.
 2.  **Infections.** 2,698,261 persons get a recorded infection, as in the paper, timed by the Danish case counts. One third of all infections are unrecorded.
 3.  **True effects.** Each infection multiplies the hazard of each of 15 cardiovascular outcomes by a true hazard ratio for each time window. Every true hazard ratio is at least 1.01.
-4.  **Biases.** Unrecorded infections, depletion of susceptibles and avoidance of infection are built in. The model also lets infection kill some persons. This changes the estimates by 3% or less, so it is not treated as a bias.
+4.  **Biases.** Depletion of susceptibles, unrecorded infections and avoidance of infection are built in. The model also lets infection kill some persons. This changes the estimates by 3% or less, so it is not treated as a bias.
 5.  **Analysis.** Each cohort is analysed approximately as the paper does: one Poisson model per outcome, with person-time split by time window, 5-year age band and calendar year.
 
 The true hazard ratios are fitted, so that the simulated estimates match the published ones. They are at least 1.01 and do not increase with time since infection. [The model](#the-model) gives every input and its source.
@@ -93,29 +93,29 @@ In the 12 months after a recorded infection, the risk of a first cardiovascular 
 
 Each bias below has an example with 100 persons per group. In each example, infection multiplies every person’s risk by 1.20, so the true ratio is 1.20. A high-risk person has a 50% risk and a low-risk person a 5% risk. After each example comes what the bias does in the simulation, at 12 months or more. The biases are added one at a time, in this order.
 
-### Unrecorded infections
-
-About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group and raise its risk. In the example, 50 of 150 infections are unrecorded, and the study sees 1.09.
-
-**In the simulation:** 1.18 to 1.04.
-
-![Unrecorded infections](figures/illustration_unrecorded.png)
-
 ### Depletion of susceptibles
 
 Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows 1.10. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
 
-**In the simulation:** 1.04 to 0.98. Depletion needs time to act, so it lowers the estimates only from 6 months on. The table gives the simulated average without and with depletion, with unrecorded infections in both:
+**In the simulation:** 1.18 to 1.09. Depletion needs time to act, so its effect grows with time since infection. The table gives the simulated average without and with depletion, with the other biases off:
 
 | Time window        | Without depletion | With depletion |
 |:-------------------|------------------:|---------------:|
-| Day 0-1            |              8.87 |           9.15 |
-| Day 2 to \<1 month |              1.43 |           1.46 |
-| 1 to 5 months      |              1.18 |           1.18 |
-| 6 to 11 months     |              1.16 |           1.10 |
-| 12 months or more  |              1.04 |           0.98 |
+| Day 0-1            |             10.03 |          10.19 |
+| Day 2 to \<1 month |              1.60 |           1.61 |
+| 1 to 5 months      |              1.33 |           1.31 |
+| 6 to 11 months     |              1.31 |           1.22 |
+| 12 months or more  |              1.18 |           1.09 |
 
 ![Depletion of susceptibles](figures/illustration_depletion.png)
+
+### Unrecorded infections
+
+About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group and raise its risk. In the example, 50 of 150 infections are unrecorded, and the study sees 1.09.
+
+**In the simulation:** 1.09 to 0.98.
+
+![Unrecorded infections](figures/illustration_unrecorded.png)
 
 ### Avoidance of infection
 
@@ -141,8 +141,8 @@ Each point is the simulated average, with its 95% prediction interval for one st
 |:---|---:|---:|---:|---:|---:|
 | True | 11.61 | 1.62 | 1.34 | 1.32 | 1.19 |
 | All biases off | 10.03 | 1.60 | 1.33 | 1.31 | 1.18 |
-| \+ unrecorded infections | 8.87 | 1.43 | 1.18 | 1.16 | 1.04 |
-| \+ depletion of susceptibles | 9.15 | 1.46 | 1.18 | 1.10 | 0.98 |
+| \+ depletion of susceptibles | 10.19 | 1.61 | 1.31 | 1.22 | 1.09 |
+| \+ unrecorded infections | 9.15 | 1.46 | 1.18 | 1.10 | 0.98 |
 | \+ avoidance of infection | 7.91 | 1.23 | 1.01 | 0.94 | 0.83 |
 | Published | 7.77 | 1.20 | 1.00 | 0.98 | 0.82 |
 
@@ -361,7 +361,7 @@ The values in the first figure, in its order. The last column is the extra rate 
 From the repository root, with R 4.6, data.table, ggplot2, patchwork and knitr:
 
 1.  `Rscript Run.R`: the main simulation. Each cohort needs about 11 GiB of memory, and it runs 2 at a time, so it needs at least 25 GB free.
-2.  `Rscript Bias.R`: the biases and the analysis by variant. It simulates 130 more cohorts.
+2.  `Rscript Bias.R`: the biases and the analysis by variant. It simulates 140 more cohorts.
 3.  `Rscript Illustrations.R`: the three examples.
 4.  `quarto render README.qmd`: this README, from `results/`.
 
