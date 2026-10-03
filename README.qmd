@@ -171,15 +171,15 @@ About one third of infections in the Omicron wave were not recorded, so some inf
 
 Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows `r seen("Depletion of susceptibles")`. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
 
-**In the simulation:** `r sv(5, UNREC)` to `r sv(5, DEPL)`. Depletion needs time to act, so it lowers the estimates only from 6 months on:
+**In the simulation:** `r sv(5, UNREC)` to `r sv(5, DEPL)`. Depletion needs time to act, so it lowers the estimates only from 6 months on. The table gives the simulated average without and with depletion, with unrecorded infections in both:
 
 ```{r}
 dp <- dcast(stp[step %in% c(UNREC, DEPL)], window ~ step, value.var = "gm")
 knitr::kable(
   data.table(
     "Time window" = WL[dp$window],
-    "Before" = f2(dp[[UNREC]]),
-    "After" = f2(dp[[DEPL]])
+    "Without depletion" = f2(dp[[UNREC]]),
+    "With depletion" = f2(dp[[DEPL]])
   ),
   format = "pipe",
   align = "lrr"

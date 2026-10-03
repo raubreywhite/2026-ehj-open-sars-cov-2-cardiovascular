@@ -105,15 +105,15 @@ About one third of infections in the Omicron wave were not recorded, so some inf
 
 Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows 1.10. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
 
-**In the simulation:** 1.04 to 0.98. Depletion needs time to act, so it lowers the estimates only from 6 months on:
+**In the simulation:** 1.04 to 0.98. Depletion needs time to act, so it lowers the estimates only from 6 months on. The table gives the simulated average without and with depletion, with unrecorded infections in both:
 
-| Time window        | Before | After |
-|:-------------------|-------:|------:|
-| Day 0-1            |   8.87 |  9.15 |
-| Day 2 to \<1 month |   1.43 |  1.46 |
-| 1 to 5 months      |   1.18 |  1.18 |
-| 6 to 11 months     |   1.16 |  1.10 |
-| 12 months or more  |   1.04 |  0.98 |
+| Time window        | Without depletion | With depletion |
+|:-------------------|------------------:|---------------:|
+| Day 0-1            |              8.87 |           9.15 |
+| Day 2 to \<1 month |              1.43 |           1.46 |
+| 1 to 5 months      |              1.18 |           1.18 |
+| 6 to 11 months     |              1.16 |           1.10 |
+| 12 months or more  |              1.04 |           0.98 |
 
 ![Depletion of susceptibles](figures/illustration_depletion.png)
 
