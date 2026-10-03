@@ -20,7 +20,7 @@ Three biases explain the gap. The largest is in the comparison group. By the end
 | Comparison group | Persons whose tests have all been negative so far. The paper calls it test-negative person-time. |
 | Underlying cardiovascular risk | The part of a person’s cardiovascular risk that age does not explain, for example from smoking, body weight or medication. The paper cannot adjust for it. |
 | True hazard ratio | In the simulation, the factor by which infection multiplies a person’s hazard of a cardiovascular diagnosis. |
-| Average | The geometric mean over the 12 most common outcomes. |
+| Average | The geometric mean over the 12 most common outcomes. At day 0-1 it is over the 8 outcomes with an estimate in every simulated cohort. |
 | Prediction interval | The range in which 95% of estimates from one study of this size would fall. |
 | Omicron wave | 21 December 2021 to 10 March 2022. Widespread PCR testing in Denmark ended on 10 March 2022. |
 | Supplementary Tables 1, 5 and 7 | Boyd et al.’s estimates by time window (Table 1), by virus variant (Table 5), and with follow-up ended on 10 March 2022 (Table 7). |
@@ -29,7 +29,7 @@ Three biases explain the gap. The largest is in the comparison group. By the end
 
 Follow-up ended on 31 December 2022, so the window of 12 months or more holds only persons infected in 2020 and 2021.
 
-- **By time window (Supplementary Table 1):** the published average is 1.00 at 1 to 5 months, 0.98 at 6 to 11 months and 0.82 at 12 months or more.
+- **By time window (Supplementary Table 1):** the published average is 7.77 at day 0-1, 1.20 at day 2 to \<1 month, 1.00 at 1 to 5 months, 0.98 at 6 to 11 months, and 0.82 at 12 months or more.
 - **By variant (Supplementary Table 5):** in the first year after infection, the published average is 1.00 for the original strain, 1.02 for alpha, 1.05 for delta, and 0.97 for omicron.
 
 These patterns point to bias, not protection. Persons infected in 2020 and 2021 show no lower risk in their first year. Their estimates fall below 1 only later, in 2022. A protective effect that starts after a year is implausible. If persons infected early were healthier from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 explains both patterns.
@@ -152,7 +152,7 @@ In the first month, the estimate with all biases off is already below the true v
 
 The argument needs one thing: that a cohort in which infection is harmful can give the published estimates. The true hazard ratios and the size of each bias do not need to be exact.
 
-- **The true hazard ratios are fitted** to the published estimates. Their average is 1.34 at 1 to 5 months, 1.32 at 6 to 11 months and 1.19 at 12 months or more.
+- **The true hazard ratios are fitted** to the published estimates. Their average is 11.61 at day 0-1, 1.62 at day 2 to \<1 month, 1.34 at 1 to 5 months, 1.32 at 6 to 11 months, and 1.19 at 12 months or more.
 - **Avoidance of infection is assumed.** No source measures it in Denmark. Its strength was chosen to reproduce the omicron against pre-Omicron contrast of Supplementary Table 5, in a screen of model variants on seeds 1 to 5 of the 10. Any other mechanism that makes the comparison group riskier in 2022 acts in the same way.
 - **How much underlying risk varies is assumed.** At the same age, the 95th percentile is 227.7 times the 5th. It stands for the risk left after the paper’s adjustment for age, sex and comorbidity.
 - **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during the Omicron wave. The model applies it to all ages and the whole period.

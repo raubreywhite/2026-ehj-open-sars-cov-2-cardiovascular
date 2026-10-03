@@ -49,6 +49,10 @@ contrast <- function(x) exp(log(x[vt$variant == "Omicron"]) - mean(log(x[vt$vari
 # Avoidance: probability of infection per doubling of underlying risk.
 av_double <- exp(-cfg$avoid * log(2) / cfg$fsd)
 tm_gm <- function(col) exp(mean(log(cfg$tm[cfg$outcomes, col])))
+# Averages per window over the outcomes with an estimate in every cohort: 8 at
+# day 0-1, all 12 in the other windows.
+tw <- bz$true_w[, .(window, true = exp(true_lg), pub)]
+by_win <- function(x) knitr::combine_words(sprintf("%s at %s", f2(x), wl))
 ```
 
 # Long-term cardiovascular risk after SARS-CoV-2 infection: bias in Boyd et al. 2026
@@ -71,7 +75,7 @@ Three biases explain the gap. The largest is in the comparison group. By the end
 | Comparison group | Persons whose tests have all been negative so far. The paper calls it test-negative person-time. |
 | Underlying cardiovascular risk | The part of a person's cardiovascular risk that age does not explain, for example from smoking, body weight or medication. The paper cannot adjust for it. |
 | True hazard ratio | In the simulation, the factor by which infection multiplies a person's hazard of a cardiovascular diagnosis. |
-| Average | The geometric mean over the `r n_out` most common outcomes. |
+| Average | The geometric mean over the `r n_out` most common outcomes. At day 0-1 it is over the `r bz$true_w[window == 1L, n_out]` outcomes with an estimate in every simulated cohort. |
 | Prediction interval | The range in which 95% of estimates from one study of this size would fall. |
 | Omicron wave | 21 December 2021 to 10 March 2022. Widespread PCR testing in Denmark ended on 10 March 2022. |
 | Supplementary Tables 1, 5 and 7 | Boyd et al.'s estimates by time window (Table 1), by virus variant (Table 5), and with follow-up ended on 10 March 2022 (Table 7). |
@@ -80,7 +84,7 @@ Three biases explain the gap. The largest is in the comparison group. By the end
 
 Follow-up ended on 31 December 2022, so the window of 12 months or more holds only persons infected in 2020 and 2021.
 
-- **By time window (Supplementary Table 1):** the published average is `r f2(pool[window == 3L, pub])` at 1 to 5 months, `r f2(pool[window == 4L, pub])` at 6 to 11 months and `r f2(pool[window == 5L, pub])` at 12 months or more.
+- **By time window (Supplementary Table 1):** the published average is `r by_win(tw$pub)`.
 - **By variant (Supplementary Table 5):** in the first year after infection, the published average is `r paste(sprintf("%s for %s", f2(pre$published_12), c("the original strain", "alpha", "delta")), collapse = ", ")`, and `r f2(vt[variant == "Omicron", published_12])` for omicron.
 
 These patterns point to bias, not protection. Persons infected in 2020 and 2021 show no lower risk in their first year. Their estimates fall below 1 only later, in 2022. A protective effect that starts after a year is implausible. If persons infected early were healthier from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 explains both patterns.
@@ -226,7 +230,7 @@ In the first month, the estimate with all biases off is already below the true v
 
 The argument needs one thing: that a cohort in which infection is harmful can give the published estimates. The true hazard ratios and the size of each bias do not need to be exact.
 
-- **The true hazard ratios are fitted** to the published estimates. Their average is `r f2(tm_gm("m_1_5"))` at 1 to 5 months, `r f2(tm_gm("m_6_11"))` at 6 to 11 months and `r f2(tm_gm("m_ge12"))` at 12 months or more.
+- **The true hazard ratios are fitted** to the published estimates. Their average is `r by_win(tw$true)`.
 - **Avoidance of infection is assumed.** No source measures it in Denmark. Its strength was chosen to reproduce the omicron against pre-Omicron contrast of Supplementary Table 5, in a screen of model variants on seeds 1 to 5 of the `r n_seed`. Any other mechanism that makes the comparison group riskier in 2022 acts in the same way.
 - **How much underlying risk varies is assumed.** At the same age, the 95th percentile is `r f1(exp(2 * qnorm(0.95) * cfg$fsd))` times the 5th. It stands for the risk left after the paper's adjustment for age, sex and comorbidity.
 - **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during the Omicron wave. The model applies it to all ages and the whole period.
