@@ -7,8 +7,7 @@
 # halves up. Each figure shows the persons as squares, and the working under
 # them.
 #
-# It draws figures/illustration_avoidance.png, _depletion, _unrecorded and
-# _deaths.
+# It draws figures/illustration_avoidance.png, _depletion and _unrecorded.
 #
 # Needs R 4.6 with data.table, ggplot2, patchwork and knitr.
 # Run it from the repository root with: Rscript Illustrations.R
@@ -23,17 +22,15 @@ ILL$risk <- c(high = 0.5, low = 0.05)
 P <- c(
   avo = "Higher-risk persons avoid infection",
   dep = "Depletion of susceptibles",
-  unr = "Unrecorded infections",
-  dai = "Deaths at infection"
+  unr = "Unrecorded infections"
 )
 
 # PART 1 -- DATA CREATION ====
 # One group at one stage: n_high and n_low persons, with or without
 # infection. unrec of them are infected without a record, split over high and
-# low risk in proportion. died high-risk persons die at infection before any
-# diagnosis. Diagnoses: the expected number per subgroup of risk and
-# unrecorded infection, rounded halves up, given to the first living persons
-# of the subgroup.
+# low risk in proportion. Diagnoses: the expected number per subgroup of risk
+# and unrecorded infection, rounded halves up, given to the first persons of
+# the subgroup.
 group <- function(
   panel,
   stage,
@@ -41,8 +38,7 @@ group <- function(
   infected,
   n_high,
   n_low,
-  unrec = 0L,
-  died = 0L
+  unrec = 0L
 ) {
   d <- data.table(risk = rep(c("high", "low"), c(n_high, n_low)))
   d[, id := .I]
@@ -51,15 +47,13 @@ group <- function(
     unrec := (risk == "high" & id <= u_high) |
       (risk == "low" & id > n_high & id <= n_high + unrec - u_high)
   ]
-  d[, died := risk == "high" & id > n_high - died]
   d[, infected := infected | unrec]
   d[, p := ILL$risk[risk] * fifelse(infected, ILL$hr, 1)]
-  d[died == TRUE, p := 0]
-  dx_n <- d[died == FALSE, .(n = floor(sum(p) + 0.5)), by = .(risk, unrec)]
+  dx_n <- d[, .(n = floor(sum(p) + 0.5)), by = .(risk, unrec)]
   d[, dx := FALSE]
   for (i in seq_len(nrow(dx_n))) {
     ids <- d[
-      risk == dx_n$risk[i] & unrec == dx_n$unrec[i] & died == FALSE,
+      risk == dx_n$risk[i] & unrec == dx_n$unrec[i],
       head(id, dx_n$n[i])
     ]
     d[ids, dx := TRUE]
@@ -93,22 +87,20 @@ d <- rbind(
   depletion("Infected", TRUE),
   depletion("Comparison group", FALSE),
   group(P["unr"], "", "Infected, recorded", TRUE, 20L, 80L),
-  group(P["unr"], "", "Comparison group", FALSE, 20L, 80L, unrec = 50L),
-  group(P["dai"], "", "Infected", TRUE, 20L, 80L, died = 3L),
-  group(P["dai"], "", "Comparison group", FALSE, 20L, 80L)
+  group(P["unr"], "", "Comparison group", FALSE, 20L, 80L, unrec = 50L)
 )
 d[, exposed := label %like% "^Infected"]
 
 # PART 2 -- ANALYSIS ====
-# Per group and stage: persons at risk (those who did not die at infection
-# and were not removed after a diagnosis in year 1) and diagnoses. The ratio
+# Per group and stage: persons at risk (those not removed after a diagnosis
+# in year 1) and diagnoses. The ratio
 # of risks, infected against comparison, per stage.
 # ex: the expected diagnoses, unrounded. The squares show the rounded
 # diagnoses dx; the working and the ratio use ex. In the depletion example
 # the persons removed after year 1 are whole persons, so rounding still moves
 # the year-2 ratio slightly.
 tab <- d[,
-  .(n = sum(!died & !removed), dx = sum(dx), ex = sum(p[!died & !removed]), died = sum(died)),
+  .(n = sum(!removed), dx = sum(dx), ex = sum(p[!removed])),
   keyby = .(panel, stage, label, exposed)
 ]
 ratio <- tab[,
@@ -117,7 +109,7 @@ ratio <- tab[,
 ]
 # The working per subgroup of risk and unrecorded infection.
 cells <- d[
-  died == FALSE & removed == FALSE,
+  removed == FALSE,
   .(n = .N, p = p[1], expected = sum(p), dx = sum(dx), infected = infected[1]),
   keyby = .(panel, stage, label, exposed, risk, unrec)
 ]
@@ -157,11 +149,10 @@ working <- function(k) {
       first <- head(parts, 2L)
       rest <- tail(parts, -2L)
       tail_txt <- sprintf(
-        "   →   %s / %d = %.1f%%%s",
+        "   →   %s / %d = %.1f%%",
         num(tb$ex),
         tb$n,
-        100 * tb$ex / tb$n,
-        if (tb$died > 0) sprintf("   (%d died at infection)", tb$died) else ""
+        100 * tb$ex / tb$n
       )
       head_txt <- sprintf(
         "%s%s:   %s",
@@ -213,19 +204,16 @@ saveRDS(
 FILL <- c(
   "High underlying risk" = "#4d4d4d",
   "Low underlying risk" = "#d9d9d9",
-  "Died at infection" = "white",
   "Removed" = "white"
 )
 EDGE_COL <- c(
   "Infected without a record" = "#2b83ba",
-  "Died at infection" = "grey45",
   "Diagnosed with CVD in year 1, no longer followed" = "#f4a6a6"
 )
 FILES <- c(
   avo = "avoidance",
   dep = "depletion",
-  unr = "unrecorded",
-  dai = "deaths"
+  unr = "unrecorded"
 )
 d[
   tab,
@@ -240,13 +228,13 @@ d[
 ]
 d[,
   status := fcase(
-    died , "Died at infection" , removed , "Removed" , risk == "high" , "High underlying risk" ,
+    removed , "Removed" , risk == "high" , "High underlying risk" ,
     default = "Low underlying risk"
   )
 ]
 d[,
   edge := fcase(
-    unrec , "Infected without a record" , died , "Died at infection" , removed , "Diagnosed with CVD in year 1, no longer followed" ,
+    unrec , "Infected without a record" , removed , "Diagnosed with CVD in year 1, no longer followed" ,
     default = NA_character_
   )
 ]
@@ -292,7 +280,7 @@ for (k in names(P)) {
       values = FILL,
       breaks = setdiff(
         names(FILL)[names(FILL) %in% x$status],
-        c("Died at infection", "Removed")
+        "Removed"
       )
     )
   q <- q + scale_shape_manual(NULL, values = 4)

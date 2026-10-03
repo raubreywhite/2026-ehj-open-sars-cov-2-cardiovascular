@@ -7,22 +7,20 @@
 # window, analysed as the paper does, and the mean frailty of test-negative
 # person-time in the second half of 2022 relative to the whole cohort.
 #
-# Decomposition: a Shapley decomposition of the bias, log(true geometric mean)
-# - log(estimated geometric mean), per window, over four sources, each switched
-# on or off. In day 0-1 some outcomes have fewer than 5 events in some cohorts
-# and no estimate, so each window uses the outcomes with an estimate in every
-# cohort and setting: some of the 12 in day 0-1, all 12 in the other windows.
-#   risk:  unmeasured differences in risk, with avoidance of infection by
-#          persons at higher risk (off: frailty SD 1e-6 and avoid 0; an SD of
-#          0 divides by 0);
-#   unrec: unrecorded infections (off: contam 1e-6, about 2 persons; a share
-#          of 0 draws no dates and stops sample());
-#   dai:   death at infection (off: p80 0);
-#   cens:  censoring at the first CVD diagnosis of any type (off: each outcome
-#          followed to its own first diagnosis, death or fu).
-# A source's share is its mean marginal effect over all orders in which the
-# sources can be switched on. The shares add up to the bias with all sources
-# on less the bias with all off.
+# Steps: from all biases off to the model of Run.R, adding the three biases
+# one at a time: unrecorded infections, depletion of susceptibles, and
+# avoidance of increasing strength. In day 0-1 some outcomes have fewer than
+# 5 events in some cohorts and no estimate, so each window uses the outcomes
+# with an estimate in every cohort and setting: some of the 12 in day 0-1, all
+# 12 in the other windows. A bias is switched off as follows:
+#   unrec:     unrecorded infections (off: contam 1e-6, about 2 persons; a
+#              share of 0 draws no dates and stops sample());
+#   depletion: frailty and censoring at the first CVD diagnosis of any type
+#              (off: frailty SD 1e-6, as an SD of 0 divides by 0, and each
+#              outcome followed to its own first diagnosis, death or fu);
+#   avoidance: avoid 0.
+# Death at infection (p80) is on in every step. Its effect is reported
+# separately, as the model of Run.R with and without it.
 #
 # Each cohort is saved to results/bias/ as it finishes, with the md5 of Run.R
 # and R/functions.R, so a stopped run resumes. A saved cohort from other code
@@ -52,7 +50,6 @@ for (e in ex[seq_len(stop_at - 1L)]) {
 }
 BIAS <- list()
 BIAS$av <- c(0, 0.02, 0.04, 0.06, CFG$avoid)
-BIAS$src <- c("risk", "unrec", "dai", "cens")
 BIAS$dir <- "results/bias"
 BIAS$windows <- 1:5
 # The code that a saved cohort comes from: the md5 of the parsed code of Run.R
@@ -108,17 +105,17 @@ cfg_of <- function(frail, unrec, av, dai) {
 }
 
 # PART 1 -- DATA CREATION ====
-# The settings: the avoidance values with all other sources on, and the 8
-# combinations of risk, unrec and dai. Risk off means no frailty and no
-# avoidance. A setting in both lists appears once.
+# The settings: the avoidance values with all other sources on; frailty off
+# with and without unrecorded infections; and the model of Run.R without death
+# at infection. A setting in both lists appears once.
 set_av <- data.table(frail = 1L, unrec = 1L, av = BIAS$av, dai = 1L)
-set_shp <- CJ(risk = 0:1, unrec = 0:1, dai = 0:1)[, .(
-  frail = risk,
-  unrec,
-  av = risk * CFG$avoid,
-  dai
-)]
-grid <- unique(rbind(set_av, set_shp))
+set_off <- data.table(
+  frail = c(0L, 0L, 1L),
+  unrec = c(0L, 1L, 1L),
+  av = c(0, 0, CFG$avoid),
+  dai = c(1L, 1L, 0L)
+)
+grid <- unique(rbind(set_av, set_off))
 grid <- grid[, .(seed = CFG$seeds), by = names(grid)]
 grid[,
   file := sprintf(
@@ -210,87 +207,31 @@ av_tab <- dcast(av_tab, av ~ window, value.var = "gm")
 setnames(av_tab, as.character(BIAS$windows), paste0("w", BIAS$windows))
 av_tab[fr, on = "av", `:=`(higher = i.higher, vs_inf = i.vs_inf)]
 
-## Decomposition ----
-v <- g[frail == as.integer(av > 0) & (av == 0 | av == CFG$avoid)]
-v[true_w, on = "window", bias := i.true_lg - lg]
-v[, risk := frail]
-v[, k := paste0(risk, unrec, dai, cens)]
-key <- function(on) paste(as.integer(BIAS$src %in% on), collapse = "")
-n <- length(BIAS$src)
-shp <- rbindlist(lapply(BIAS$windows, function(w) {
-  rbindlist(lapply(CFG$seeds, function(s) {
-    b <- setNames(
-      v[window == w & seed == s, bias],
-      v[window == w & seed == s, k]
-    )
-    stopifnot(length(b) == 2L^n)
-    return(rbindlist(lapply(BIAS$src, function(i) {
-      others <- setdiff(BIAS$src, i)
-      phi <- 0
-      for (m in 0:(n - 1L)) {
-        subsets <- if (m == 0L) {
-          list(character(0))
-        } else {
-          utils::combn(others, m, simplify = FALSE)
-        }
-        for (S in subsets) {
-          wt <- factorial(m) * factorial(n - m - 1L) / factorial(n)
-          phi <- phi + wt * (b[[key(c(S, i))]] - b[[key(S)]])
-        }
-      }
-      return(data.table(window = w, seed = s, source = i, phi = phi))
-    })))
-  }))
-}))
-tot <- v[,
-  .(on = bias[k == "1111"], off = bias[k == "0000"]),
-  keyby = .(window, seed)
+## Deaths caused by infection ----
+# The model of Run.R with and without death at infection, per window.
+dai_tab <- g[
+  frail == 1L & unrec == 1L & av == CFG$avoid & cens == 1L,
+  .(gm = exp(mean(lg))),
+  keyby = .(window, dai)
 ]
-stopifnot(isTRUE(all.equal(
-  shp[, sum(phi), keyby = .(window, seed)]$V1,
-  tot[, on - off]
-)))
-shp_tab <- shp[,
-  .(phi = mean(phi), phi_se = sd(phi) / sqrt(.N)),
-  keyby = .(window, source)
-]
-shp_tab[, share := phi / sum(phi), by = window]
-gm_tab <- tot[, .(on = exp(-mean(on)), off = exp(-mean(off))), keyby = window]
-gm_tab[
-  true_w,
-  on = "window",
-  `:=`(
-    true = exp(i.true_lg),
-    on = exp(i.true_lg) * on,
-    off = exp(i.true_lg) * off
-  )
-]
-# The gap log(true) - log(all on) is the residual log(true) - log(all off),
-# from the analysis itself, plus the four Shapley contributions.
-gm_tab[, `:=`(gap = log(true / on), residual = log(true / off))]
+dai_tab <- dcast(dai_tab, window ~ dai, value.var = "gm")
+setnames(dai_tab, c("0", "1"), c("without", "with"))
 
 # PART 3 -- OUTPUT ====
-cat(
-  "\nGeometric mean of the outcomes of each window: true, all sources on, all off; the log gap true - on, and its residual true - off\n"
-)
-print(knitr::kable(gm_tab, format = "pipe", digits = 3))
-cat("\nShapley contributions per window (phi, log scale); share is of the change from all sources off to all on, not of the gap from the true value:\n")
-print(knitr::kable(shp_tab[order(window, -phi)], format = "pipe", digits = 3))
+cat("\nThe model of Run.R without and with death at infection, geometric mean per window:\n")
+print(knitr::kable(dai_tab, format = "pipe", digits = 3))
 cat(
   "\nAvoidance: geometric mean per window; in the last half-year, the frailty of the comparison group against the cohort mean (higher) and against person-time after a recorded infection (vs_inf):\n"
 )
 print(knitr::kable(av_tab, format = "pipe", digits = 3))
 ## Steps ----
-# Real simulated settings, adding one source at a time in a fixed order: the
-# four sources off (not censored), then censoring,
-# unrecorded infections, death at infection, depletion of susceptibles (frailty on)
-# without avoidance, and avoidance of increasing strength. The order is a choice: it
+# Real simulated settings, adding one bias at a time in a fixed order: all
+# three off (death at infection on), then unrecorded infections, depletion of
+# susceptibles, and avoidance of increasing strength. The order is a choice: it
 # changes the size of each step, not the first or last point.
 STEPS <- list(
-  list(lab = "All biases off", frail = 0L, unrec = 0L, av = 0, dai = 0L, cens = 0L),
-  list(lab = "+ stop at first diagnosis of any outcome", frail = 0L, unrec = 0L, av = 0, dai = 0L, cens = 1L),
-  list(lab = "+ unrecorded infections", frail = 0L, unrec = 1L, av = 0, dai = 0L, cens = 1L),
-  list(lab = "+ deaths caused by infection", frail = 0L, unrec = 1L, av = 0, dai = 1L, cens = 1L),
+  list(lab = "All biases off", frail = 0L, unrec = 0L, av = 0, dai = 1L, cens = 0L),
+  list(lab = "+ unrecorded infections", frail = 0L, unrec = 1L, av = 0, dai = 1L, cens = 0L),
   list(lab = "+ depletion of susceptibles", frail = 1L, unrec = 1L, av = 0, dai = 1L, cens = 1L)
 )
 for (p in BIAS$av[BIAS$av > 0]) {
@@ -376,10 +317,7 @@ saveRDS(
   list(
     var_tab = var_tab,
     av_tab = av_tab,
-    shp_tab = shp_tab,
-    gm_tab = gm_tab,
-    shp = shp,
-    tot = tot,
+    dai_tab = dai_tab,
     true_gm = exp(true_lg),
     steps = steps,
     true_w = true_w,

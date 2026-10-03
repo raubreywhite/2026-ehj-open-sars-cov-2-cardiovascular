@@ -23,7 +23,7 @@ The main cause is the comparison group. By the end of 2022, 90% of the cohort ha
 | Comparison group | Person-time of persons whose tests have all been negative so far. The paper calls it test-negative person-time. A person leaves it at their first positive test. |
 | Underlying cardiovascular risk | The part of a person’s cardiovascular risk that age does not explain, for example from smoking, body weight or medication. The paper does not adjust for these. In the code it is called frailty: one number per person that multiplies all of that person’s cardiovascular hazards. |
 | Avoidance of infection | Persons with a higher underlying cardiovascular risk are less likely to be infected. They are then more common among those still uninfected, so the comparison group gets riskier as the population is infected. |
-| Depletion of susceptibles | Infection brings diagnoses forward, most of all in persons at high underlying risk. Those still undiagnosed later are then at lower risk than at the start. |
+| Depletion of susceptibles | Infection brings diagnoses forward, most of all in persons at high underlying risk. Those still undiagnosed later are then at lower risk than at the start. The paper’s rule that follow-up for every outcome stops at the first diagnosis of any of the 15 outcomes is part of it. |
 | Prediction interval | The range in which 95% of estimates from one study of this size would fall, from the spread over the 10 simulated cohorts. |
 | Omicron wave | 21 December 2021 to 10 March 2022 in the model. Widespread PCR testing in Denmark ended on 10 March 2022. |
 | Supplementary Table 1 | Boyd et al.’s main estimates: hazard ratio per outcome and time window. |
@@ -43,7 +43,7 @@ The two patterns point to bias, not protection. The persons infected in 2020 and
 1.  **Cohort.** `Run.R` simulates 10 cohorts of 4,508,489 persons, the size of the paper’s cardiovascular cohort, with its age distribution and follow-up from 1 March 2020 to 31 December 2022.
 2.  **Infections.** 2,698,261 persons get a recorded infection, as in the paper, at dates that follow the Danish national case counts. One third of all infections are unrecorded. Persons with a higher underlying cardiovascular risk are less likely to be infected (avoidance of infection).
 3.  **True effects.** Each infection, recorded or unrecorded, multiplies the person’s hazard of each of 15 cardiovascular outcomes by a true hazard ratio for each time window. Every true hazard ratio is at least 1.01, so infection is harmful for every outcome in every window.
-4.  **Biases.** Five features of the data can move the estimates away from the true hazard ratios: depletion of susceptibles, avoidance of infection, unrecorded infections, deaths caused by infection, and the end of follow-up at a person’s first diagnosis of any of the 15 outcomes.
+4.  **Biases.** Three features of the data move the estimates away from the true hazard ratios: unrecorded infections, depletion of susceptibles and avoidance of infection. The model also lets infection kill some persons, more often those at high underlying risk. This changes the estimates by 3% or less, so it is in the model throughout and is not treated as a bias.
 5.  **Analysis.** Each cohort is analysed as the paper does, approximately: person-time is split by time window, 5-year age band and calendar year, and one Poisson model per outcome gives the estimated hazard ratios.
 
 The true hazard ratios are fitted: they are the values for which the estimated hazard ratios match the published ones, under the rule that a true hazard ratio is at least 1.01 and does not increase with time since infection. [The model](#the-model) gives every input and its source.
@@ -98,19 +98,21 @@ The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows 
 
 ### How each bias works
 
-The four examples use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person’s risk of a cardiovascular diagnosis by 1.20. A high-risk person has a 50% risk and a low-risk person a 5% risk. So the true ratio of risks is 1.20 in every example. Each example gives the ratio that a study would see. `Illustrations.R` draws them.
+The three examples use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person’s risk of a cardiovascular diagnosis by 1.20. A high-risk person has a 50% risk and a low-risk person a 5% risk. So the true ratio of risks is 1.20 in every example. Each example gives the ratio that a study would see. `Illustrations.R` draws them.
 
-After each example comes the size of the bias in the simulation: how the estimate at 12 months or more changes when the bias is added. The biases are added in the order of the figures in [the next section](#what-each-bias-does-in-the-simulation), and each value is the geometric mean over the 12 outcomes.
+After each example comes the size of the bias in the simulation: how the estimate at 12 months or more changes when the bias is added. The biases are added in the order below, as in the figures of [the next section](#what-each-bias-does-in-the-simulation), and each value is the geometric mean over the 12 outcomes.
 
-**Higher-risk persons avoid infection.** If persons at high underlying risk are more careful, fewer of them are infected. By 2022, when most of the population had been infected, those still uninfected include a larger share of high-risk persons. The comparison group then looks riskier than the infected group, for a reason that has nothing to do with infection. The study would see 0.81.
+**Unrecorded infections.** About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group. In the example, 50 of 150 infections are unrecorded. Their raised risk makes the comparison group look worse. The study would see 1.09.
 
-In the simulation, avoidance of infection lowers the estimate from 0.98 to 0.83. It is the largest bias.
+In the simulation, unrecorded infections lower the estimate from 1.18 to 1.04.
 
-![Higher-risk persons avoid infection](figures/illustration_avoidance.png)
+![Unrecorded infections](figures/illustration_unrecorded.png)
 
 **Depletion of susceptibles.** Both groups start with the same 100 persons, followed for two years. A person diagnosed in year 1 is no longer free of cardiovascular disease, so they leave the comparison. Infection brings diagnoses forward, most of all in high-risk persons, so in year 2 the infected group has fewer high-risk persons left. Year 1 shows the true ratio, and year 2 shows 1.10.
 
-In the simulation, depletion of susceptibles lowers the estimate from 1.04 to 0.98. Adding it also lets deaths caused by infection fall on the persons at highest risk. The effect grows with time since infection, as depletion does:
+The paper adds to this. It stops follow-up for every outcome at a person’s first diagnosis in any of the 15 cardiovascular groups, so a diagnosis of one outcome also removes the person from the comparisons of all the others.
+
+In the simulation, depletion of susceptibles lowers the estimate from 1.04 to 0.98. The effect grows with time since infection, as depletion does:
 
 | Time window       | Before | After |
 |:------------------|-------:|------:|
@@ -120,23 +122,15 @@ In the simulation, depletion of susceptibles lowers the estimate from 1.04 to 0.
 
 ![Depletion of susceptibles](figures/illustration_depletion.png)
 
-**Unrecorded infections.** About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group. In the example, 50 of 150 infections are unrecorded. Their raised risk makes the comparison group look worse. The study would see 1.09.
+**Higher-risk persons avoid infection.** If persons at high underlying risk are more careful, fewer of them are infected. By 2022, when most of the population had been infected, those still uninfected include a larger share of high-risk persons. The comparison group then looks riskier than the infected group, for a reason that has nothing to do with infection. The study would see 0.81.
 
-In the simulation, unrecorded infections lower the estimate from 1.18 to 1.04.
+In the simulation, avoidance of infection lowers the estimate from 0.98 to 0.83. It is the largest bias.
 
-![Unrecorded infections](figures/illustration_unrecorded.png)
-
-**Deaths caused by infection.** Infection kills some of the persons at the highest risk before they can be diagnosed. The infected group loses some of its highest-risk persons. The study would see 1.10.
-
-In the simulation, adding deaths caused by infection leaves the estimate at 1.04.
-
-![Deaths caused by infection](figures/illustration_deaths.png)
-
-**Stopping at the first diagnosis of any outcome.** The paper stops follow-up for every outcome at a person’s first diagnosis in any of the 15 cardiovascular groups. A diagnosis of one outcome therefore removes the person from the comparisons of all the others. This is depletion across outcomes. It removes high-risk persons from both groups. In the simulation, it leaves the estimate at 1.18.
+![Higher-risk persons avoid infection](figures/illustration_avoidance.png)
 
 ### What each bias does in the simulation
 
-`Bias.R` switches the biases on and off in the simulated cohorts, with the true hazard ratios unchanged, and analyses each setting as the paper does. In the table of contributions below, depletion of susceptibles and avoidance of infection are counted together, because both work through underlying risk.
+`Bias.R` switches the biases on and off in the simulated cohorts, with the true hazard ratios unchanged, and analyses each setting as the paper does.
 
 There is one figure per time window. Each starts with all biases off and adds them one at a time. The last steps are avoidance of increasing strength, and each replaces the step before it. Each label gives the mean underlying risk of the comparison group from 28 August to 31 December 2022, relative to persons after a recorded infection in the same period, both counted until their first cardiovascular diagnosis. It is pooled over ages and time windows, and is not a ratio of cardiovascular risk. Each point is the geometric mean over the outcomes with an estimate in every cohort: all 12, except at day 0-1, where 8 outcomes have one. Each bar is the 95% prediction interval for one study.
 
@@ -165,10 +159,8 @@ There is one figure per time window. Each starts with all biases off and adds th
 | Step | Day 0-1 | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
 |:---|---:|---:|---:|---:|---:|
 | True | 11.61 | 1.62 | 1.34 | 1.32 | 1.19 |
-| All biases off | 10.12 | 1.60 | 1.33 | 1.31 | 1.18 |
-| \+ stop at first diagnosis of any outcome | 10.07 | 1.60 | 1.33 | 1.31 | 1.18 |
-| \+ unrecorded infections | 8.88 | 1.43 | 1.18 | 1.16 | 1.04 |
-| \+ deaths caused by infection | 8.83 | 1.43 | 1.18 | 1.16 | 1.04 |
+| All biases off | 10.03 | 1.60 | 1.33 | 1.31 | 1.18 |
+| \+ unrecorded infections | 8.87 | 1.43 | 1.18 | 1.16 | 1.04 |
 | \+ depletion of susceptibles | 9.15 | 1.46 | 1.18 | 1.10 | 0.98 |
 | with avoidance: underlying risk of comparison group 1.03 x infected | 8.76 | 1.43 | 1.14 | 1.06 | 0.95 |
 | with avoidance: underlying risk of comparison group 1.11 x infected | 8.28 | 1.36 | 1.09 | 1.02 | 0.91 |
@@ -177,18 +169,9 @@ There is one figure per time window. Each starts with all biases off and adds th
 
 - **12 months or more:** with all biases off, the estimate is 1.18, against a true value of 1.19. Unrecorded infections bring it to 1.04, depletion of susceptibles to 0.98, and avoidance to 0.83.
 - **1 to 5 and 6 to 11 months:** avoidance lowers these windows too, to 1.01 and 0.94. The true values are higher here (1.34 and 1.32) than at 12 months or more.
-- **Day 0-1 and day 2 to \<1 month:** with all biases off, the estimates are below the true values (10.12 against 11.61, and 1.60 against 1.62). The paper starts follow-up 30 days after the first test. For a person whose first test was positive, the early windows then lie about a month after infection, when the effect is smaller.
+- **Day 0-1 and day 2 to \<1 month:** with all biases off, the estimates are below the true values (10.03 against 11.61, and 1.60 against 1.62). The paper starts follow-up 30 days after the first test. For a person whose first test was positive, the early windows then lie about a month after infection, when the effect is smaller.
 
-The order of the steps is a choice. It changes the size of each step, but not the first or last point. The table below does not depend on the order. For each bias, it gives the factor by which adding it multiplies the estimate, as a geometric mean over all orders in which the four can be added. This is exp(-phi), where phi is the Shapley contribution on the log scale.
-
-| Bias | Day 0-1 | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
-|:---|---:|---:|---:|---:|---:|
-| Stopping at the first diagnosis of any outcome | 1.01 | 1.02 | 1.01 | 1.00 | 0.98 |
-| Unrecorded infections | 0.89 | 0.90 | 0.89 | 0.89 | 0.89 |
-| Deaths caused by infection | 0.97 | 0.98 | 0.99 | 0.99 | 0.99 |
-| Depletion of susceptibles, with avoidance of infection | 0.90 | 0.86 | 0.86 | 0.81 | 0.80 |
-
-At 12 months or more, the two biases in the comparison group make most of the difference. Depletion of susceptibles and avoidance of infection together multiply the estimate by 0.80, and unrecorded infections by 0.89. Deaths caused by infection and stopping at the first diagnosis of any outcome each change it by 2% or less.
+The order of the steps is a choice. It changes the size of each step, but not the first or last point.
 
 ### How avoidance changes the comparison group
 
@@ -439,7 +422,7 @@ Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall j
 | `Run.R` | The model settings, the published values with their sources, the analysis and the output. |
 | `R/functions.R` | The simulation, the analysis and the cohort description. |
 | `Bias.R` | What each bias contributes, the strength of avoidance, and the analysis by variant. |
-| `Illustrations.R` | The four examples with 100 persons per group. |
+| `Illustrations.R` | The three examples with 100 persons per group. |
 | `README.qmd` | The source of this README. |
 | `data/ssi/` | The SSI source files, byte for byte, with their sources and md5s. |
 | `figures/` | The figures that `Run.R`, `Bias.R` and `Illustrations.R` draw. |
