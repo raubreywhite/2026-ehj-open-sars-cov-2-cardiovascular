@@ -150,11 +150,11 @@ CFG$rate <- 1000 *
   ) /
   6188401
 CFG$rate_true <- 1000 * 54247 / 6188401
-# The calendar step: from day 740 the hazard of every outcome is step_mult
-# times higher. step_mult was solved against the test-negative rates 8.119
-# (Supp Table 7) and 10.870 per 1000 person-years after day 740.
-CFG$step_day <- 740
-CFG$step_mult <- 1.1750
+# sc: the baseline scale of every outcome hazard. It is fitted jointly with the
+# true hazard ratios, so that the full model gives the published test-negative
+# first-event rate, rate_true (checks_v05/refit3.R in the internal
+# repository).
+CFG$sc <- 0.1579235837242475
 
 ## The simulated world ----
 # fsd: SD of log frailty, a shared unrecorded cardiovascular risk.
@@ -163,14 +163,15 @@ CFG$step_mult <- 1.1750
 # detect_early, detect_late: timing weights p of unrecorded infections, before
 # and after widespread testing ended on day 740. Unrecorded infections follow
 # the dates of recorded ones weighted by (1 - p) / p. contam sets their number.
-# pre_frailty: selection into early infection. A person 1 SD of log frailty
-# less frail has exp(pre_frailty) times the odds of an infection before o0.
+# avoid: avoidance of infection by persons at higher underlying risk. A person
+# 1 SD of log frailty more frail has exp(-avoid) times the weight in the draws
+# of recorded and unrecorded infections.
 # All five are assumed. No source measures them.
 CFG$fsd <- 1.65
 CFG$p80 <- 0.03
 CFG$detect_early <- 0.40
 CFG$detect_late <- 0.05
-CFG$pre_frailty <- 0.15
+CFG$avoid <- 0.08
 
 # contam: the share of never-recorded persons with an unrecorded infection. One
 # third of infections were unrecorded (Erikstrup et al. 2022).
@@ -181,26 +182,27 @@ CFG$contam <- (CFG$p_infected / (1 - 1 / 3) - CFG$p_infected) /
 # estimates reproduce the published ones. The windows start at 0, 1, 30,
 # 182.62 and 365.25 days since infection. Arterial embolism, cardiac arrest
 # and cardiomyopathy have the 3 lowest rates and are not among the 12 fitted
-# outcomes. They share one assumed row.
+# outcomes. Their row is the geometric mean of the 12 fitted rows, per window.
+# The fit is checks_v05/refit3.R in the internal repository.
 EDGE <- c(0, 1, 30, 182.62, 365.25)
 # The values are the fitted ones, to full precision.
 # fmt: skip
 CFG$tm <- matrix(c(
-  7.262658810455609, 1.1527392137677965, 1.0833576125225581, 1.0833576125225581, 1.0833576125225581,
-  10.347612936183138, 1.2719701857808678, 1.01, 1.01, 1.01,
-  7.496398730724567, 1.281590790373247, 1.01, 1.01, 1.01,
-  11.378584828357422, 1.2690264530984252, 1.0768075162635082, 1.0768075162635082, 1.01,
-  4.2683453330071535, 1.6852939405635237, 1.226454289676099, 1.226454289676099, 1.2044506868494067,
-  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
-  22.753908147597887, 6.475188817032425, 1.5739623304842238, 1.2632101510915585, 1.2632101510915585,
-  2.9804472349724365, 1.01, 1.01, 1.01, 1.01,
-  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
-  16.212648646447782, 1.1054619786967321, 1.01, 1.01, 1.01,
-  7.291893823922938, 1.2701457122335622, 1.113293310288862, 1.113293310288862, 1.0177552600987922,
-  5.5155226996984394, 1.3702123309931373, 1.1633588707814906, 1.1633588707814906, 1.1633588707814906,
-  9.166584483991715, 1.3823345308307158, 1.127829612468253, 1.127829612468253, 1.1184495424019756,
-  11.133502702879513, 1.1576971449486315, 1.1576971449486315, 1.1576971449486315, 1.1576971449486315,
-  3.217387769877089, 1.0388171766645773, 1.0388171766645773, 1.0388171766645773, 1.031029189424833
+  8.0000382240960626, 1.2554860317102041, 1.2554860317102041, 1.2554860317102041, 1.2159019205112402,
+  12.827617110464306, 1.3833851934048165, 1.146402217020321, 1.146402217020321, 1.01,
+  7.8248079211829378, 1.4739622875993277, 1.1734746167983776, 1.1734746167983776, 1.0696503385599083,
+  12.103577112908974, 1.5595265397061977, 1.4104638079726644, 1.4104638079726644, 1.1205924349453964,
+  4.6360232770273893, 2.0019057864785603, 1.5974484219621812, 1.5974484219621812, 1.3362842926791776,
+  8.6477865519139456, 1.6178171884012815, 1.3429671482158905, 1.3162919373516657, 1.1875353829080393,
+  27.793038008044036, 7.4577626291016159, 2.0306040987397789, 1.6347830623133339, 1.4710666493484521,
+  3.9688444176142879, 1.2750801485041992, 1.2750801485041992, 1.2750801485041992, 1.01,
+  8.6477865519139456, 1.6178171884012815, 1.3429671482158905, 1.3162919373516657, 1.1875353829080393,
+  15.141859000422764, 1.211065032683613, 1.0344613278947299, 1.01, 1.01,
+  8.6477865519139456, 1.6178171884012815, 1.3429671482158905, 1.3162919373516657, 1.1875353829080393,
+  5.5155226996984394, 1.2494151323788241, 1.2494151323788241, 1.2494151323788241, 1.1989293359197164,
+  11.37036760861678, 1.5482729786936489, 1.4968619678690311, 1.4968619678690311, 1.3105672251880738,
+  12.008318463790717, 1.3900738307862621, 1.3900738307862621, 1.3900738307862621, 1.3900738307862621,
+  3.086496450834844, 1.2988825704687255, 1.2988825704687255, 1.2988825704687255, 1.2200694295047818
 ), 15, byrow = TRUE, dimnames = list(names(CFG$rate), c("day1", "m_lt1", "m_1_5", "m_6_11", "m_ge12")))
 
 ## Analysis ----
@@ -366,6 +368,7 @@ res <- parallel::mclapply(
     k1 <- risk_after(z$d, j, a)
     e1 <- z$d[j, c("fu", CFG$outcomes), with = FALSE]
     sc <- z$sc
+    r$moved <- z$moved
     rm(z)
     invisible(gc())
     d0 <- sim(s, infect = FALSE, sc = sc)$d
@@ -387,6 +390,10 @@ res <- parallel::mclapply(
 stopifnot(!vapply(res, inherits, logical(1), "try-error"))
 est <- rbindlist(lapply(res, `[[`, "est"))
 sel <- rbindlist(lapply(res, function(r) r$desc$sel))
+negu <- rbindlist(lapply(res, function(r) r$desc$negu))
+# Infections moved to another living person because their first person died
+# before them, per cohort: recorded and unrecorded.
+moved <- do.call(rbind, lapply(res, `[[`, "moved"))
 v <- res[[1]]$desc
 exc <- lapply(res, `[[`, "excess")
 rd <- rbindlist(lapply(res, `[[`, "rd"))
@@ -763,6 +770,8 @@ saveRDS(
     xt = xt,
     xk = xk,
     sel_ratio = sel_ratio,
+    negu = negu,
+    moved = moved,
     cmp = cmp,
     age_cmp = age_cmp,
     py_cmp = py_cmp,

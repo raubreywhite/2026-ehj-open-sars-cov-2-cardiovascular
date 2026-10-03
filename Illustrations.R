@@ -7,7 +7,7 @@
 # halves up. Each figure shows the persons as squares, and the working under
 # them.
 #
-# It draws figures/illustration_selection.png, _depletion, _unrecorded and
+# It draws figures/illustration_avoidance.png, _depletion, _unrecorded and
 # _deaths.
 #
 # Needs R 4.6 with data.table, ggplot2, patchwork and knitr.
@@ -21,7 +21,7 @@ ILL <- list()
 ILL$hr <- 1.2
 ILL$risk <- c(high = 0.5, low = 0.05)
 P <- c(
-  sel = "Selection into early infection",
+  avo = "Higher-risk persons avoid infection",
   dep = "Depletion of susceptibles",
   unr = "Unrecorded infections",
   dai = "Deaths at infection"
@@ -88,8 +88,8 @@ depletion <- function(label, infected) {
   return(rbind(y1, y2))
 }
 d <- rbind(
-  group(P["sel"], "", "Infected before Omicron", TRUE, 10L, 90L),
-  group(P["sel"], "", "Comparison group", FALSE, 20L, 80L),
+  group(P["avo"], "", "Infected", TRUE, 10L, 90L),
+  group(P["avo"], "", "Comparison group, still uninfected", FALSE, 20L, 80L),
   depletion("Infected", TRUE),
   depletion("Comparison group", FALSE),
   group(P["unr"], "", "Infected, recorded", TRUE, 20L, 80L),
@@ -222,7 +222,7 @@ EDGE_COL <- c(
   "Diagnosed with CVD in year 1, no longer followed" = "#f4a6a6"
 )
 FILES <- c(
-  sel = "selection",
+  avo = "avoidance",
   dep = "depletion",
   unr = "unrecorded",
   dai = "deaths"

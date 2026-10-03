@@ -1,27 +1,25 @@
-# Which sources of bias move the estimates at 12 months or more below the true
-# hazard ratios, and how much selection into early infection is needed? It
-# uses the settings of Run.R, so run Run.R first.
+# Which sources of bias move the estimates below the true hazard ratios, and
+# how much avoidance of infection by persons at higher underlying risk is
+# needed? It uses the settings of Run.R, so run Run.R first.
 #
-# Selection: the model of Run.R with pre_frailty 0, 0.025, 0.05, 0.075, 0.10
-# and 0.15 (the value of Run.R). Per value, the geometric mean of the 12
-# estimates at 12 months or more, analysed as the paper does, and the ratio of
-# mean frailty of persons with a recorded infection before the Omicron wave to
-# that of persons infected later.
+# Avoidance: the model of Run.R with avoid 0, 0.02, 0.04, 0.06 and 0.08 (the
+# value of Run.R). Per value, the geometric mean of the 12 estimates per
+# window, analysed as the paper does, and the mean frailty of test-negative
+# person-time in the second half of 2022 relative to the whole cohort.
 #
 # Decomposition: a Shapley decomposition of the bias, log(true geometric mean)
-# - log(estimated geometric mean), per window, over five sources, each switched
+# - log(estimated geometric mean), per window, over four sources, each switched
 # on or off. In day 0-1 some outcomes have fewer than 5 events in some cohorts
 # and no estimate, so each window uses the outcomes with an estimate in every
-# cohort and setting: 6 in day 0-1, all 12 in the other windows.
-#   risk:  unmeasured differences in risk with selection into early infection
-#          (off: frailty SD 1e-6 and pre_frailty 0; an SD of 0 divides by 0);
+# cohort and setting: some of the 12 in day 0-1, all 12 in the other windows.
+#   risk:  unmeasured differences in risk, with avoidance of infection by
+#          persons at higher risk (off: frailty SD 1e-6 and avoid 0; an SD of
+#          0 divides by 0);
 #   unrec: unrecorded infections (off: contam 1e-6, about 2 persons; a share
 #          of 0 draws no dates and stops sample());
 #   dai:   death at infection (off: p80 0);
 #   cens:  censoring at the first CVD diagnosis of any type (off: each outcome
 #          followed to its own first diagnosis, death or fu).
-#   step:  the rise of every CVD hazard by step_mult from 11 March 2022, which
-#          the analysis adjusts for by calendar year only (off: step_mult 1).
 # A source's share is its mean marginal effect over all orders in which the
 # sources can be switched on. The shares add up to the bias with all sources
 # on less the bias with all off.
@@ -53,11 +51,23 @@ for (e in ex[seq_len(stop_at - 1L)]) {
   eval(e)
 }
 BIAS <- list()
-BIAS$pf <- c(0, 0.025, 0.05, 0.075, 0.10, CFG$pre_frailty)
-BIAS$src <- c("risk", "unrec", "dai", "cens", "step")
+BIAS$av <- c(0, 0.02, 0.04, 0.06, CFG$avoid)
+BIAS$src <- c("risk", "unrec", "dai", "cens")
 BIAS$dir <- "results/bias"
 BIAS$windows <- 1:5
-BIAS$code <- unname(tools::md5sum(c("Run.R", "R/functions.R")))
+# The code that a saved cohort comes from: the md5 of the parsed code of Run.R
+# and R/functions.R, without comments, so a change to a comment keeps the
+# saved cohorts. The variant cohorts also depend on the variant analysis in
+# this file.
+code_md5 <- function(files) {
+  tf <- tempfile()
+  writeLines(unlist(lapply(files, function(f) {
+    vapply(parse(f, keep.source = FALSE), function(e) paste(deparse(e, width.cutoff = 500L), collapse = "\n"), "")
+  })), tf)
+  return(unname(tools::md5sum(tf)))
+}
+BIAS$code <- code_md5(c("Run.R", "R/functions.R"))
+BIAS$vcode <- code_md5(c("Run.R", "R/functions.R", "Bias.R"))
 # Variant periods by the date of the positive test (paper, Methods), in days
 # since 1 March 2020: original strain 1 February-31 December 2020, alpha
 # 15 March-30 June 2021, delta 15 July-15 November 2021, omicron 28 December
@@ -85,42 +95,39 @@ arrhythmias 1.10 0.92 1.19 1.04
 conduction_disorders 0.79 1.38 0.66 1.18
 valve_disorders 0.89 1.12 1.10 1.01
 ")
-cfg_of <- function(frail, unrec, pf, dai, step) {
+cfg_of <- function(frail, unrec, av, dai) {
   return(modifyList(
     CFG,
     list(
       fsd = if (frail) CFG$fsd else 1e-6,
       contam = if (unrec) CFG$contam else 1e-6,
-      pre_frailty = pf,
-      p80 = if (dai) CFG$p80 else 0,
-      step_mult = if (step) CFG$step_mult else 1
+      avoid = av,
+      p80 = if (dai) CFG$p80 else 0
     )
   ))
 }
 
 # PART 1 -- DATA CREATION ====
-# The settings: the selection values with all other sources on, and the 8
+# The settings: the avoidance values with all other sources on, and the 8
 # combinations of risk, unrec and dai. Risk off means no frailty and no
-# selection. Two settings appear in both lists once only.
-set_sel <- data.table(frail = 1L, unrec = 1L, pf = BIAS$pf, dai = 1L, step = 1L)
-set_shp <- CJ(risk = 0:1, unrec = 0:1, dai = 0:1, step = 0:1)[, .(
+# avoidance. A setting in both lists appears once.
+set_av <- data.table(frail = 1L, unrec = 1L, av = BIAS$av, dai = 1L)
+set_shp <- CJ(risk = 0:1, unrec = 0:1, dai = 0:1)[, .(
   frail = risk,
   unrec,
-  pf = risk * CFG$pre_frailty,
-  dai,
-  step
+  av = risk * CFG$avoid,
+  dai
 )]
-grid <- unique(rbind(set_sel, set_shp))
+grid <- unique(rbind(set_av, set_shp))
 grid <- grid[, .(seed = CFG$seeds), by = names(grid)]
 grid[,
   file := sprintf(
-    "%s/f%d_u%d_pf%.3f_d%d_s%d_seed%02d.rds",
+    "%s/f%d_u%d_av%.3f_d%d_seed%02d.rds",
     BIAS$dir,
     frail,
     unrec,
-    pf,
+    av,
     dai,
-    step,
     seed
   )
 ]
@@ -131,7 +138,7 @@ res <- parallel::mclapply(
   seq_len(nrow(todo)),
   function(i) {
     g <- todo[i]
-    cfg <- cfg_of(g$frail, g$unrec, g$pf, g$dai, g$step)
+    cfg <- cfg_of(g$frail, g$unrec, g$av, g$dai)
     z <- sim(g$seed, cfg)
     saveRDS(
       list(
@@ -140,7 +147,7 @@ res <- parallel::mclapply(
           analyse(z, g$seed, cfg)[, cens := 1L],
           analyse_uncensored(z, g$seed, cfg)[, cens := 0L]
         ),
-        sel = describe(z, g$seed, cfg)$sel
+        negu = describe(z, g$seed, cfg)$negu
       ),
       g$file
     )
@@ -153,14 +160,14 @@ stopifnot(vapply(res, isTRUE, logical(1)))
 x <- lapply(grid$file, readRDS)
 stopifnot(vapply(x, function(r) identical(r$code, BIAS$code), logical(1)))
 est <- rbindlist(Map(
-  function(r, i) cbind(r$est, grid[i, .(frail, unrec, pf, dai, step)]),
+  function(r, i) cbind(r$est, grid[i, .(frail, unrec, av, dai)]),
   x,
   seq_len(nrow(grid))
 ))
-# The frailty of the pre-Omicron and later infected, for the selection
+# The frailty of test-negative person-time by half-year, for the avoidance
 # settings only.
-i_sel <- which(grid$frail == 1L & grid$unrec == 1L & grid$dai == 1L)
-sel <- rbindlist(lapply(i_sel, function(i) cbind(x[[i]]$sel, grid[i, .(pf)])))
+i_av <- which(grid$frail == 1L & grid$unrec == 1L & grid$dai == 1L)
+negu <- rbindlist(lapply(i_av, function(i) cbind(x[[i]]$negu, grid[i, .(av)])))
 
 # PART 2 -- ANALYSIS ====
 # The outcomes of each window: those with an estimate in every cohort and
@@ -172,7 +179,7 @@ true_w <- oset[, .(true_lg = mean(log(true)), pub = exp(mean(log(pub))), n_out =
 stopifnot(true_w[window > 1L, all(n_out == length(CFG$outcomes))])
 true_lg <- true_w[window == 5L, true_lg]
 full <- est[
-  frail == 1L & unrec == 1L & pf == CFG$pre_frailty & dai == 1L & step == 1L & cens == 1L,
+  frail == 1L & unrec == 1L & av == CFG$avoid & dai == 1L & cens == 1L,
   .(window, outcome, hr, se, ew, seed)
 ]
 stopifnot(isTRUE(all.equal(
@@ -183,27 +190,31 @@ stopifnot(isTRUE(all.equal(
 # lg: the mean log estimate of the window's outcomes, per window and seed.
 g <- est[oset, on = .(window, outcome)][,
   .(n = .N, lg = mean(log(hr))),
-  keyby = .(window, frail, unrec, pf, dai, step, cens, seed)
+  keyby = .(window, frail, unrec, av, dai, cens, seed)
 ]
 g[true_w, on = "window", n_out := i.n_out]
 stopifnot(all(g$n == g$n_out))
-g5 <- g[window == 5L]
 
-## Selection ----
-fr <- sel[, .(u = sum(su) / sum(n)), keyby = .(pf, grp)]
-fr <- dcast(fr, pf ~ grp, value.var = "u")
-sel_tab <- g5[
-  frail == 1L & unrec == 1L & dai == 1L & step == 1L & cens == 1L,
-  .(gm = exp(mean(lg)), gm_se = sd(lg) / sqrt(.N)),
-  keyby = pf
+## Avoidance ----
+# In the last half-year, 28 August to 31 December 2022 (days 910-1036), and
+# as in analyse() up to the first CVD diagnosis: higher, how much higher the
+# mean frailty of test-negative person-time is than the cohort mean; vs_inf,
+# its ratio to the mean frailty of person-time after a recorded infection.
+fr <- negu[half == max(half), .(higher = sum(su) / sum(st) / mean(u_all) - 1, vs_inf = (sum(su) / sum(st)) / (sum(su_inf) / sum(st_inf))), keyby = av]
+av_tab <- g[
+  frail == 1L & unrec == 1L & dai == 1L & cens == 1L,
+  .(gm = exp(mean(lg))),
+  keyby = .(av, window)
 ]
-sel_tab[fr, on = "pf", lower := 1 - i.pre / i.later]
+av_tab <- dcast(av_tab, av ~ window, value.var = "gm")
+setnames(av_tab, as.character(BIAS$windows), paste0("w", BIAS$windows))
+av_tab[fr, on = "av", `:=`(higher = i.higher, vs_inf = i.vs_inf)]
 
 ## Decomposition ----
-v <- g[frail == as.integer(pf > 0) & (pf == 0 | pf == CFG$pre_frailty)]
+v <- g[frail == as.integer(av > 0) & (av == 0 | av == CFG$avoid)]
 v[true_w, on = "window", bias := i.true_lg - lg]
 v[, risk := frail]
-v[, k := paste0(risk, unrec, dai, cens, step)]
+v[, k := paste0(risk, unrec, dai, cens)]
 key <- function(on) paste(as.integer(BIAS$src %in% on), collapse = "")
 n <- length(BIAS$src)
 shp <- rbindlist(lapply(BIAS$windows, function(w) {
@@ -232,7 +243,7 @@ shp <- rbindlist(lapply(BIAS$windows, function(w) {
   }))
 }))
 tot <- v[,
-  .(on = bias[k == "11111"], off = bias[k == "00000"]),
+  .(on = bias[k == "1111"], off = bias[k == "0000"]),
   keyby = .(window, seed)
 ]
 stopifnot(isTRUE(all.equal(
@@ -260,44 +271,42 @@ gm_tab[, `:=`(gap = log(true / on), residual = log(true / off))]
 
 # PART 3 -- OUTPUT ====
 cat(
-  "\nGeometric mean of the 12 outcomes per window: true, all sources on, all off; the log gap true - on, and its residual true - off\n"
+  "\nGeometric mean of the outcomes of each window: true, all sources on, all off; the log gap true - on, and its residual true - off\n"
 )
 print(knitr::kable(gm_tab, format = "pipe", digits = 3))
 cat("\nShapley contributions per window (phi, log scale); share is of the change from all sources off to all on, not of the gap from the true value:\n")
 print(knitr::kable(shp_tab[order(window, -phi)], format = "pipe", digits = 3))
 cat(
-  "\nSelection: geometric mean at 12 months or more, and how much lower the mean frailty of the pre-Omicron infected is than that of the later infected:\n"
+  "\nAvoidance: geometric mean per window; in the last half-year, the frailty of the comparison group against the cohort mean (higher) and against person-time after a recorded infection (vs_inf):\n"
 )
-print(knitr::kable(sel_tab, format = "pipe", digits = 3))
+print(knitr::kable(av_tab, format = "pipe", digits = 3))
 ## Steps ----
 # Real simulated settings, adding one source at a time in a fixed order: the
 # four sources off (not censored), then censoring,
-# unrecorded infections, death at infection, unmeasured risk without
-# selection, and selection of increasing strength. The order is a choice: it
+# unrecorded infections, death at infection, differences in underlying risk
+# without avoidance, and avoidance of increasing strength. The order is a choice: it
 # changes the size of each step, not the first or last point.
 STEPS <- list(
-  list(lab = "Five sources off", frail = 0L, unrec = 0L, pf = 0, dai = 0L, cens = 0L, step = 0L),
-  list(lab = "+ rise in March 2022", frail = 0L, unrec = 0L, pf = 0, dai = 0L, cens = 0L, step = 1L),
-  list(lab = "+ stop at first CVD", frail = 0L, unrec = 0L, pf = 0, dai = 0L, cens = 1L, step = 1L),
-  list(lab = "+ unrecorded infections", frail = 0L, unrec = 1L, pf = 0, dai = 0L, cens = 1L, step = 1L),
-  list(lab = "+ deaths at infection", frail = 0L, unrec = 1L, pf = 0, dai = 1L, cens = 1L, step = 1L),
-  list(lab = "+ unmeasured risk", frail = 1L, unrec = 1L, pf = 0, dai = 1L, cens = 1L, step = 1L)
+  list(lab = "All biases off", frail = 0L, unrec = 0L, av = 0, dai = 0L, cens = 0L),
+  list(lab = "+ stop at first diagnosis of any outcome", frail = 0L, unrec = 0L, av = 0, dai = 0L, cens = 1L),
+  list(lab = "+ unrecorded infections", frail = 0L, unrec = 1L, av = 0, dai = 0L, cens = 1L),
+  list(lab = "+ deaths caused by infection", frail = 0L, unrec = 1L, av = 0, dai = 1L, cens = 1L),
+  list(lab = "+ differences in underlying risk", frail = 1L, unrec = 1L, av = 0, dai = 1L, cens = 1L)
 )
-for (p in BIAS$pf[BIAS$pf > 0]) {
+for (p in BIAS$av[BIAS$av > 0]) {
   STEPS[[length(STEPS) + 1L]] <- list(
-    lab = sprintf("with selection, %.0f%%", 100 * sel_tab[pf == p, lower]),
+    lab = sprintf("with avoidance: underlying risk of comparison group %.2f x infected", av_tab[av == p, vs_inf]),
     frail = 1L,
     unrec = 1L,
-    pf = p,
+    av = p,
     dai = 1L,
-    cens = 1L,
-    step = 1L
+    cens = 1L
   )
 }
 steps <- rbindlist(lapply(seq_along(STEPS), function(k) {
   s <- STEPS[[k]]
   x <- g[
-    frail == s$frail & unrec == s$unrec & abs(pf - s$pf) < 1e-9 & dai == s$dai & cens == s$cens & step == s$step,
+    frail == s$frail & unrec == s$unrec & abs(av - s$av) < 1e-9 & dai == s$dai & cens == s$cens,
     .(gm = exp(mean(lg)), h = stats::qt(0.975, .N - 1) * sd(lg) * sqrt(1 + 1 / .N), n = .N),
     keyby = window
   ]
@@ -309,7 +318,7 @@ steps <- rbind(
   steps
 )
 STEP_LEV <- c("True", vapply(STEPS, `[[`, character(1), "lab"))
-cat("\nSteps: geometric mean of the window's outcomes (6 in day 0-1, 12 otherwise), adding one source at a time:\n")
+cat(sprintf("\nSteps: geometric mean of the window's outcomes (%s per window), adding one source at a time:\n", paste(true_w$n_out, collapse = ", ")))
 print(knitr::kable(dcast(steps, k + step ~ window, value.var = "gm")[order(k)], format = "pipe", digits = 3))
 
 ## Variant strata ----
@@ -320,9 +329,11 @@ print(knitr::kable(dcast(steps, k + step ~ window, value.var = "gm")[order(k)], 
 # exposed time is left out. The cohorts are simulated again, and saved to
 # results/bias/ with the code md5.
 by_variant <- function(z, seed, cfg) {
-  test_day <- z$d$entry + z$d$ana
+  # The test date: entry plus bio, which places a positive first test 30 days
+  # before entry, as in the paper's design.
+  test_day <- fifelse(z$d$seen, z$d$entry + z$d$bio, NA_real_)
   return(rbindlist(lapply(seq_len(nrow(BIAS$variant)), function(v) {
-    inv <- !is.na(test_day) & test_day >= BIAS$variant$lo[v] & test_day <= BIAS$variant$hi[v]
+    inv <- !is.na(test_day) & test_day >= BIAS$variant$lo[v] & test_day < BIAS$variant$hi[v] + 1
     w <- z$win
     w[w > 0L] <- NA_integer_
     w[inv[row(z$win)] & z$win %in% 3:4] <- 1L
@@ -339,14 +350,14 @@ vres <- parallel::mclapply(
       return(readRDS(vfile[i]))
     }
     z <- sim(CFG$seeds[i])
-    r <- list(code = BIAS$code, est = by_variant(z, CFG$seeds[i], CFG))
+    r <- list(code = BIAS$vcode, est = by_variant(z, CFG$seeds[i], CFG))
     saveRDS(r, vfile[i])
     return(r)
   },
   mc.cores = CFG$n_core,
   mc.preschedule = FALSE
 )
-stopifnot(vapply(vres, function(r) identical(r$code, BIAS$code), logical(1)))
+stopifnot(vapply(vres, function(r) identical(r$code, BIAS$vcode), logical(1)))
 vest <- rbindlist(Map(function(r, s) r$est[, seed := s], vres, CFG$seeds))
 # Per variant, the outcomes with an estimate in every cohort (a small
 # stratum can have fewer than 5 events); the published geometric mean is
@@ -364,7 +375,7 @@ print(knitr::kable(var_tab, format = "pipe", digits = 3))
 saveRDS(
   list(
     var_tab = var_tab,
-    sel_tab = sel_tab,
+    av_tab = av_tab,
     shp_tab = shp_tab,
     gm_tab = gm_tab,
     shp = shp,
