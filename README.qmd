@@ -61,9 +61,9 @@ by_win <- function(x) knitr::combine_words(sprintf("%s at %s", f2(x), wl))
 
 Boyd et al. 2026, "SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity" (EHJ Open, doi:10.1093/ehjopen/oeag121), followed 4.5 million Danish persons with a SARS-CoV-2 test. At 12 months or more after a positive test, `r w5[, sum(pub < 1)]` of the `r n_out` most common cardiovascular outcomes have a hazard ratio below 1, and `r r$n_sig_pub` have a 95% CI below 1. The authors conclude that infection carries little long-term cardiovascular risk.
 
-**The published estimates do not support that conclusion.** We simulated a cohort in which infection increases the risk of every cardiovascular outcome at every time since infection. At 12 months or more, the true hazard ratios average `r f2(tm_gm("m_ge12"))`. Analysed as the paper does, the simulated cohort gives `r f2(pool[window == 5L, gm])`, against `r f2(pool[window == 5L, pub])` published. `r n_in` of the `r n_pi` published estimates lie inside the simulated 95% prediction intervals, and the estimates by virus variant also match. A design that reports harm as protection cannot be used to rule out harm.
+The published estimates do not support that conclusion. We simulated a cohort in which infection increases the risk of every cardiovascular outcome at every time since infection. At 12 months or more, the true hazard ratios average `r f2(tm_gm("m_ge12"))`. Analysed as the paper does, the simulated cohort gives `r f2(pool[window == 5L, gm])`, against `r f2(pool[window == 5L, pub])` published. `r n_in` of the `r n_pi` published estimates lie inside the simulated 95% prediction intervals, and the estimates by virus variant also match. So the published estimates cannot rule out a harmful effect of infection.
 
-Three biases explain the gap. The largest is in the comparison group. By the end of 2022, `r pct(sum(mon$recorded + mon$unrecorded) / cfg$n, 0)` of the cohort had been infected. Those still uninfected were at higher underlying cardiovascular risk, because higher-risk persons were slightly more likely to avoid infection.
+Three biases produce the difference. The largest comes from the comparison group. By the end of 2022, `r pct(sum(mon$recorded + mon$unrecorded) / cfg$n, 0)` of the cohort had been infected. Those still uninfected were at higher underlying cardiovascular risk, because higher-risk persons were slightly more likely to avoid infection.
 
 ## Terms
 
@@ -87,7 +87,7 @@ Follow-up ended on 31 December 2022, so the window of 12 months or more holds on
 - **By time window (Supplementary Table 1):** the published average is `r by_win(tw$pub)`.
 - **By variant (Supplementary Table 5):** in the first year after infection, the published average is `r paste(sprintf("%s for %s", f2(pre$published_12), c("the original strain", "alpha", "delta")), collapse = ", ")`, and `r f2(vt[variant == "Omicron", published_12])` for omicron.
 
-These patterns point to bias, not protection. Persons infected in 2020 and 2021 show no lower risk in their first year. Their estimates fall below 1 only later, in 2022. A protective effect that starts after a year is implausible. If persons infected early were healthier from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 explains both patterns.
+These patterns fit bias better than protection. Persons infected in 2020 and 2021 show no lower risk in their first year. Their estimates fall below 1 only later, in 2022. A protective effect that starts after a year is implausible. If persons infected early were healthier from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 explains both patterns.
 
 ## How the simulation works
 
@@ -103,7 +103,7 @@ The true hazard ratios are fitted, so that the simulated estimates match the pub
 
 ### By time window (Supplementary Table 1)
 
-At 12 months or more, every true hazard ratio is at least `r f2(min(w5$true))`, and the average is `r f2(tm_gm("m_ge12"))`. Yet `r w5[, sum(pub < 1)]` of the `r n_out` published estimates are below 1. The simulation reproduces them: `r n_in` of the `r n_pi` published estimates (`r pct(n_in / n_pi, 0)`) lie inside the 95% prediction interval.
+At 12 months or more, every true hazard ratio is at least `r f2(min(w5$true))`, and the average is `r f2(tm_gm("m_ge12"))`. `r w5[, sum(pub < 1)]` of the `r n_out` published estimates are below 1. The simulation reproduces them: `r n_in` of the `r n_pi` published estimates (`r pct(n_in / n_pi, 0)`) lie inside the 95% prediction interval.
 
 ![True, simulated and published hazard ratios](figures/forest_outcome_truths.png)
 
@@ -169,21 +169,21 @@ At 12 months or more, adding the three biases one at a time to the simulated coh
 
 Unrecorded infections only dilute an effect: on their own, they bring the estimate toward 1 but not below it. Depletion of susceptibles and avoidance of infection change who is left in each group, and these can take it below 1.
 
-Each bias below has an example with 100 persons per group. In each example, infection multiplies every person's risk by `r f2(il$cfg$hr)`, so the true ratio is `r f2(il$cfg$hr)`. A high-risk person has a `r pct(il$cfg$risk[["high"]], 0)` risk and a low-risk person a `r pct(il$cfg$risk[["low"]], 0)` risk. After each example comes what the bias does in the simulation, at 12 months or more. The biases are added one at a time, in this order.
+Each bias below has an example with 100 persons per group. In each example, infection multiplies every person's risk by `r f2(il$cfg$hr)`, so the true ratio is `r f2(il$cfg$hr)`. A high-risk person has a `r pct(il$cfg$risk[["high"]], 0)` risk and a low-risk person a `r pct(il$cfg$risk[["low"]], 0)` risk. After each example, the text gives what the bias does in the simulation at 12 months or more. The biases are added one at a time, in this order.
 
 ### Unrecorded infections
 
 About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group and raise its risk. In the example, 50 of 150 infections are unrecorded, and the study sees `r seen("Unrecorded infections")`.
 
-**In the simulation:** `r sv(5, "All biases off")` to `r sv(5, UNREC)`.
+In the simulation, unrecorded infections lower the estimate from `r sv(5, "All biases off")` to `r sv(5, UNREC)`.
 
 ![Unrecorded infections](figures/illustration_unrecorded.png)
 
 ### Depletion of susceptibles
 
-Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows `r seen("Depletion of susceptibles")`. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
+Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows `r seen("Depletion of susceptibles")`. The paper also stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes, which adds to the effect.
 
-**In the simulation:** `r sv(5, UNREC)` to `r sv(5, DEPL)`. Depletion needs time to act, so it lowers the estimates only from 6 months on. The table gives the simulated average without and with depletion, with unrecorded infections in both:
+In the simulation, depletion lowers the estimate from `r sv(5, UNREC)` to `r sv(5, DEPL)`. Depletion needs time to act, so it lowers the estimates only from 6 months on. The table gives the simulated average without and with depletion, with unrecorded infections in both:
 
 ```{r}
 dp <- dcast(stp[step %in% c(UNREC, DEPL)], window ~ step, value.var = "gm")
@@ -204,9 +204,9 @@ knitr::kable(
 
 If persons at high underlying risk are more careful, fewer of them are infected. By 2022, when most of the population had been infected, the persons still uninfected include a larger share of high-risk persons. The comparison group then looks riskier than the infected group. In the example, the study sees `r seen("Higher-risk persons avoid infection")`.
 
-**In the simulation:** `r sv(5, DEPL)` to `r sv(5, AVOID)`. This is the largest bias.
+In the simulation, avoidance lowers the estimate from `r sv(5, DEPL)` to `r sv(5, AVOID)`. This is the largest bias.
 
-The difference per person is small: a person with twice the underlying risk of another of the same age has a `r pct(1 - av_double)` lower chance of infection. It matters because almost everyone was infected, so the comparison group became the persons who avoided infection. In the simulation, the average underlying risk of the comparison group was `r pct(ng[1, vs_inf] - 1, 0)` higher than that of infected persons in 2020, and `r pct(ng[.N, vs_inf] - 1, 0)` higher in late 2022.
+The effect per person is small. A person with twice the underlying risk of another of the same age has a `r pct(1 - av_double)` lower chance of infection. It adds up because almost everyone was infected, so the comparison group became the persons who avoided infection. In the simulation, the average underlying risk of the comparison group was `r pct(ng[1, vs_inf] - 1, 0)` higher than that of infected persons in 2020, and `r pct(ng[.N, vs_inf] - 1, 0)` higher in late 2022.
 
 In the paper, `r pct(1 - r$pub_py[6, "t7"] / r$pub_py[6, "t1"], 0)` of the person-time at 12 months or more lies after 10 March 2022, so these estimates are made against the comparison group of 2022.
 
@@ -240,7 +240,7 @@ In the first month, the estimate with all biases off is already below the true v
 
 ## Assumptions
 
-The argument needs one thing: that a cohort in which infection is harmful can give the published estimates. The true hazard ratios and the size of each bias do not need to be exact.
+The simulation only has to show that a cohort in which infection is harmful can give the published estimates. The true hazard ratios and the size of each bias do not need to be exact.
 
 - **The true hazard ratios are fitted** to the published estimates. Their average is `r by_win(tw$true)`.
 - **Avoidance of infection is assumed.** No source measures it in Denmark. Its strength was chosen to reproduce the omicron against pre-Omicron contrast of Supplementary Table 5, in a screen of model variants on seeds 1 to 5 of the `r n_seed`. Any other mechanism that makes the comparison group riskier in 2022 acts in the same way.
@@ -260,7 +260,7 @@ Not in the simulation:
 
 ## The model
 
-Every input, with its source. The name in brackets is the setting in `Run.R`.
+The table gives every input and its source. The name in brackets is the setting in `Run.R`.
 
 | Component | How `Run.R` draws it | Source |
 |---|---|---|
@@ -279,7 +279,7 @@ A person's cardiovascular hazard changes only with age, underlying risk and infe
 
 ## How the simulated cohort matches the paper
 
-The first simulated cohort against the paper and national data. "Input" marks a quantity the model is set or fitted to. "Check" marks one that no input sets.
+The table compares the first simulated cohort with the paper and with national data. "Input" marks a quantity the model is set or fitted to. "Check" marks one that no input sets.
 
 ```{r}
 ia <- r$inf_age
@@ -366,7 +366,7 @@ The SSI line is the national count of first infections, scaled to the paper's `r
 
 ![Rate per outcome in the comparison group, simulated and published](figures/cohort_baseline_rates.png)
 
-The figures call the comparison group "test-negative", as the paper does. The cohort agrees closely with the paper. The larger differences:
+The figures call the comparison group "test-negative", as the paper does. The cohort agrees closely with the paper. The larger differences are:
 
 - **Recorded infections after 10 March 2022.** The model puts `r pct(cfg$f_late)` of recorded infections after that day, fitted to the paper's person-years rather than to SSI. From April to December 2022 it has `r f2(mon[month >= "2022-04", sum(recorded)] / mon[month >= "2022-04", sum(ssi_scaled)])` times the scaled SSI count, and in March 2022 `r f2(mon[month == "2022-03", ratio])` times.
 - **Recorded infections before the Omicron wave** are spread evenly, so the 2020 and 2021 waves are absent. The share per calendar year still agrees with SSI.

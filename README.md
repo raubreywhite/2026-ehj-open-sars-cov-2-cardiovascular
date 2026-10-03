@@ -6,9 +6,9 @@
 
 Boyd et al. 2026, “SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity” (EHJ Open, doi:10.1093/ehjopen/oeag121), followed 4.5 million Danish persons with a SARS-CoV-2 test. At 12 months or more after a positive test, 11 of the 12 most common cardiovascular outcomes have a hazard ratio below 1, and 6 have a 95% CI below 1. The authors conclude that infection carries little long-term cardiovascular risk.
 
-**The published estimates do not support that conclusion.** We simulated a cohort in which infection increases the risk of every cardiovascular outcome at every time since infection. At 12 months or more, the true hazard ratios average 1.19. Analysed as the paper does, the simulated cohort gives 0.83, against 0.82 published. 57 of the 59 published estimates lie inside the simulated 95% prediction intervals, and the estimates by virus variant also match. A design that reports harm as protection cannot be used to rule out harm.
+The published estimates do not support that conclusion. We simulated a cohort in which infection increases the risk of every cardiovascular outcome at every time since infection. At 12 months or more, the true hazard ratios average 1.19. Analysed as the paper does, the simulated cohort gives 0.83, against 0.82 published. 57 of the 59 published estimates lie inside the simulated 95% prediction intervals, and the estimates by virus variant also match. So the published estimates cannot rule out a harmful effect of infection.
 
-Three biases explain the gap. The largest is in the comparison group. By the end of 2022, 90% of the cohort had been infected. Those still uninfected were at higher underlying cardiovascular risk, because higher-risk persons were slightly more likely to avoid infection.
+Three biases produce the difference. The largest comes from the comparison group. By the end of 2022, 90% of the cohort had been infected. Those still uninfected were at higher underlying cardiovascular risk, because higher-risk persons were slightly more likely to avoid infection.
 
 ## Terms
 
@@ -32,7 +32,7 @@ Follow-up ended on 31 December 2022, so the window of 12 months or more holds on
 - **By time window (Supplementary Table 1):** the published average is 7.77 at day 0-1, 1.20 at day 2 to \<1 month, 1.00 at 1 to 5 months, 0.98 at 6 to 11 months, and 0.82 at 12 months or more.
 - **By variant (Supplementary Table 5):** in the first year after infection, the published average is 1.00 for the original strain, 1.02 for alpha, 1.05 for delta, and 0.97 for omicron.
 
-These patterns point to bias, not protection. Persons infected in 2020 and 2021 show no lower risk in their first year. Their estimates fall below 1 only later, in 2022. A protective effect that starts after a year is implausible. If persons infected early were healthier from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 explains both patterns.
+These patterns fit bias better than protection. Persons infected in 2020 and 2021 show no lower risk in their first year. Their estimates fall below 1 only later, in 2022. A protective effect that starts after a year is implausible. If persons infected early were healthier from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 explains both patterns.
 
 ## How the simulation works
 
@@ -48,7 +48,7 @@ The true hazard ratios are fitted, so that the simulated estimates match the pub
 
 ### By time window (Supplementary Table 1)
 
-At 12 months or more, every true hazard ratio is at least 1.01, and the average is 1.19. Yet 11 of the 12 published estimates are below 1. The simulation reproduces them: 57 of the 59 published estimates (97%) lie inside the 95% prediction interval.
+At 12 months or more, every true hazard ratio is at least 1.01, and the average is 1.19. 11 of the 12 published estimates are below 1. The simulation reproduces them: 57 of the 59 published estimates (97%) lie inside the 95% prediction interval.
 
 ![True, simulated and published hazard ratios](figures/forest_outcome_truths.png)
 
@@ -103,21 +103,21 @@ At 12 months or more, adding the three biases one at a time to the simulated coh
 
 Unrecorded infections only dilute an effect: on their own, they bring the estimate toward 1 but not below it. Depletion of susceptibles and avoidance of infection change who is left in each group, and these can take it below 1.
 
-Each bias below has an example with 100 persons per group. In each example, infection multiplies every person’s risk by 1.20, so the true ratio is 1.20. A high-risk person has a 50% risk and a low-risk person a 5% risk. After each example comes what the bias does in the simulation, at 12 months or more. The biases are added one at a time, in this order.
+Each bias below has an example with 100 persons per group. In each example, infection multiplies every person’s risk by 1.20, so the true ratio is 1.20. A high-risk person has a 50% risk and a low-risk person a 5% risk. After each example, the text gives what the bias does in the simulation at 12 months or more. The biases are added one at a time, in this order.
 
 ### Unrecorded infections
 
 About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group and raise its risk. In the example, 50 of 150 infections are unrecorded, and the study sees 1.09.
 
-**In the simulation:** 1.18 to 1.04.
+In the simulation, unrecorded infections lower the estimate from 1.18 to 1.04.
 
 ![Unrecorded infections](figures/illustration_unrecorded.png)
 
 ### Depletion of susceptibles
 
-Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows 1.10. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
+Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows 1.10. The paper also stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes, which adds to the effect.
 
-**In the simulation:** 1.04 to 0.98. Depletion needs time to act, so it lowers the estimates only from 6 months on. The table gives the simulated average without and with depletion, with unrecorded infections in both:
+In the simulation, depletion lowers the estimate from 1.04 to 0.98. Depletion needs time to act, so it lowers the estimates only from 6 months on. The table gives the simulated average without and with depletion, with unrecorded infections in both:
 
 | Time window        | Without depletion | With depletion |
 |:-------------------|------------------:|---------------:|
@@ -133,9 +133,9 @@ Infection brings diagnoses forward, most of all in high-risk persons. A person d
 
 If persons at high underlying risk are more careful, fewer of them are infected. By 2022, when most of the population had been infected, the persons still uninfected include a larger share of high-risk persons. The comparison group then looks riskier than the infected group. In the example, the study sees 0.81.
 
-**In the simulation:** 0.98 to 0.83. This is the largest bias.
+In the simulation, avoidance lowers the estimate from 0.98 to 0.83. This is the largest bias.
 
-The difference per person is small: a person with twice the underlying risk of another of the same age has a 3.3% lower chance of infection. It matters because almost everyone was infected, so the comparison group became the persons who avoided infection. In the simulation, the average underlying risk of the comparison group was 15% higher than that of infected persons in 2020, and 28% higher in late 2022.
+The effect per person is small. A person with twice the underlying risk of another of the same age has a 3.3% lower chance of infection. It adds up because almost everyone was infected, so the comparison group became the persons who avoided infection. In the simulation, the average underlying risk of the comparison group was 15% higher than that of infected persons in 2020, and 28% higher in late 2022.
 
 In the paper, 83% of the person-time at 12 months or more lies after 10 March 2022, so these estimates are made against the comparison group of 2022.
 
@@ -162,7 +162,7 @@ In the first month, the estimate with all biases off is already below the true v
 
 ## Assumptions
 
-The argument needs one thing: that a cohort in which infection is harmful can give the published estimates. The true hazard ratios and the size of each bias do not need to be exact.
+The simulation only has to show that a cohort in which infection is harmful can give the published estimates. The true hazard ratios and the size of each bias do not need to be exact.
 
 - **The true hazard ratios are fitted** to the published estimates. Their average is 11.61 at day 0-1, 1.62 at day 2 to \<1 month, 1.34 at 1 to 5 months, 1.32 at 6 to 11 months, and 1.19 at 12 months or more.
 - **Avoidance of infection is assumed.** No source measures it in Denmark. Its strength was chosen to reproduce the omicron against pre-Omicron contrast of Supplementary Table 5, in a screen of model variants on seeds 1 to 5 of the 10. Any other mechanism that makes the comparison group riskier in 2022 acts in the same way.
@@ -182,7 +182,7 @@ Not in the simulation:
 
 ## The model
 
-Every input, with its source. The name in brackets is the setting in `Run.R`.
+The table gives every input and its source. The name in brackets is the setting in `Run.R`.
 
 | Component | How `Run.R` draws it | Source |
 |----|----|----|
@@ -201,7 +201,7 @@ A person’s cardiovascular hazard changes only with age, underlying risk and in
 
 ## How the simulated cohort matches the paper
 
-The first simulated cohort against the paper and national data. “Input” marks a quantity the model is set or fitted to. “Check” marks one that no input sets.
+The table compares the first simulated cohort with the paper and with national data. “Input” marks a quantity the model is set or fitted to. “Check” marks one that no input sets.
 
 | Quantity | Simulated | Published | Source | Role |
 |:---|:---|:---|:---|:---|
@@ -232,7 +232,7 @@ The SSI line is the national count of first infections, scaled to the paper’s 
 
 ![Rate per outcome in the comparison group, simulated and published](figures/cohort_baseline_rates.png)
 
-The figures call the comparison group “test-negative”, as the paper does. The cohort agrees closely with the paper. The larger differences:
+The figures call the comparison group “test-negative”, as the paper does. The cohort agrees closely with the paper. The larger differences are:
 
 - **Recorded infections after 10 March 2022.** The model puts 3.9% of recorded infections after that day, fitted to the paper’s person-years rather than to SSI. From April to December 2022 it has 0.33 times the scaled SSI count, and in March 2022 1.38 times.
 
