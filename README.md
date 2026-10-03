@@ -2,117 +2,109 @@
 
 # Long-term cardiovascular risk after SARS-CoV-2 infection: bias in Boyd et al. 2026
 
-## What this repository shows
+## Summary
 
 Boyd et al. 2026, “SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity” (EHJ Open, doi:10.1093/ehjopen/oeag121), followed 4.5 million Danish persons with a SARS-CoV-2 test. At 12 months or more after a positive test, 11 of the 12 most common cardiovascular outcomes have a hazard ratio below 1, and 6 have a 95% CI below 1. The authors conclude that infection carries little long-term cardiovascular risk.
 
-**The published estimates do not support that conclusion.** We simulated a cohort in which infection increases the risk of every cardiovascular outcome in every time window. At 12 months or more, the true hazard ratios have a geometric mean of 1.19 over the 12 outcomes. Analysed as the paper does, the simulated cohort gives a geometric mean of 0.83, against 0.82 published. 57 of the 59 published estimates with a prediction interval lie inside it. The simulation also reproduces the published estimates by virus variant. A design that reports a harmful effect as a protective one cannot be used to rule out harm.
+**The published estimates do not support that conclusion.** We simulated a cohort in which infection increases the risk of every cardiovascular outcome at every time since infection. At 12 months or more, the true hazard ratios average 1.19. Analysed as the paper does, the simulated cohort gives 0.83, against 0.82 published. 57 of the 59 published estimates lie inside the simulated 95% prediction intervals, and the estimates by virus variant also match. A design that reports harm as protection cannot be used to rule out harm.
 
-The main cause is the comparison group. By the end of 2022, 90% of the cohort had been infected. The persons still in the comparison group were at higher underlying cardiovascular risk, because higher-risk persons were slightly more likely to avoid infection. The comparison group also held persons infected without a positive test. In the paper, 83% of the person-time at 12 months or more lies after 10 March 2022, so these estimates are made against this comparison group.
+Three biases explain the gap. The largest is in the comparison group. By the end of 2022, 90% of the cohort had been infected. Those still uninfected were at higher underlying cardiovascular risk, because higher-risk persons were slightly more likely to avoid infection.
 
-## Terms used here
+## Terms
 
 | Term | Meaning |
 |----|----|
-| True hazard ratio | In the simulation, the factor by which infection multiplies a person’s hazard of a cardiovascular diagnosis, for a person of given age and underlying risk. It is set by the model, so it is known. |
-| Estimated hazard ratio | What the paper’s analysis gives when it is applied to a simulated cohort. |
-| Published hazard ratio | The estimate in Boyd et al. |
-| Time window | Time since the first positive test. The paper uses five: day 0-1, day 2 to \<1 month, 1 to 5 months, 6 to 11 months, and 12 months or more. Every hazard ratio belongs to one window. |
-| Recorded infection | An infection with a positive test in the Danish registers. |
+| Time window | Time since the first positive test: day 0-1, day 2 to \<1 month, 1 to 5 months, 6 to 11 months, or 12 months or more. |
+| Recorded infection | An infection with a positive test. |
 | Unrecorded infection | An infection without a positive test. The person stays in the comparison group. |
-| Comparison group | Person-time of persons whose tests have all been negative so far. The paper calls it test-negative person-time. A person leaves it at their first positive test. |
-| Underlying cardiovascular risk | The part of a person’s cardiovascular risk that age does not explain, for example from smoking, body weight or medication. The paper does not adjust for these. In the code it is called frailty: one number per person that multiplies all of that person’s cardiovascular hazards. |
-| Avoidance of infection | Persons with a higher underlying cardiovascular risk are less likely to be infected. They are then more common among those still uninfected, so the comparison group gets riskier as the population is infected. |
-| Depletion of susceptibles | Infection brings diagnoses forward, most of all in persons at high underlying risk. Those still undiagnosed later are then at lower risk than at the start. The paper’s rule that follow-up for every outcome stops at the first diagnosis of any of the 15 outcomes is part of it. |
-| Prediction interval | The range in which 95% of estimates from one study of this size would fall, from the spread over the 10 simulated cohorts. |
-| Omicron wave | 21 December 2021 to 10 March 2022 in the model. Widespread PCR testing in Denmark ended on 10 March 2022. |
-| Supplementary Table 1 | Boyd et al.’s main estimates: hazard ratio per outcome and time window. |
-| Supplementary Table 5 | Boyd et al.’s hazard ratios for 1 to 12 months after infection, separately for the original strain, alpha, delta and omicron. |
-| Supplementary Table 7 | Boyd et al.’s sensitivity analysis that ends follow-up on 10 March 2022. |
+| Comparison group | Persons whose tests have all been negative so far. The paper calls it test-negative person-time. |
+| Underlying cardiovascular risk | The part of a person’s cardiovascular risk that age does not explain, for example from smoking, body weight or medication. The paper cannot adjust for it. |
+| True hazard ratio | In the simulation, the factor by which infection multiplies a person’s hazard of a cardiovascular diagnosis. |
+| Average | The geometric mean over the 12 most common outcomes. |
+| Prediction interval | The range in which 95% of estimates from one study of this size would fall. |
+| Omicron wave | 21 December 2021 to 10 March 2022. Widespread PCR testing in Denmark ended on 10 March 2022. |
+| Supplementary Tables 1, 5 and 7 | Boyd et al.’s estimates by time window (Table 1), by virus variant (Table 5), and with follow-up ended on 10 March 2022 (Table 7). |
 
-## The two published patterns the model must reproduce
+## What the published estimates show
 
-**Supplementary Table 1, estimates by time window.** Over the 12 most common outcomes, the geometric mean of the published hazard ratios is 1.00 at 1 to 5 months, 0.98 at 6 to 11 months and 0.82 at 12 months or more. At 12 months or more, 6 of the 12 have a 95% CI below 1. Follow-up ended on 31 December 2022, so the window of 12 months or more holds only persons infected in 2020 and 2021.
+Follow-up ended on 31 December 2022, so the window of 12 months or more holds only persons infected in 2020 and 2021.
 
-**Supplementary Table 5, estimates by variant.** For persons infected before the Omicron wave, the geometric mean over the 12 outcomes for 1 to 12 months is 1.00 (original strain), 1.02 (alpha), 1.05 (delta). For omicron it is 0.97.
+- **By time window (Supplementary Table 1):** the published average is 1.00 at 1 to 5 months, 0.98 at 6 to 11 months and 0.82 at 12 months or more.
+- **By variant (Supplementary Table 5):** in the first year after infection, the published average is 1.00 for the original strain, 1.02 for alpha, 1.05 for delta, and 0.97 for omicron.
 
-The two patterns point to bias, not protection. The persons infected in 2020 and 2021 show no lower risk in their first year after infection. Their estimates fall below 1 only later, in 2022. A protective effect that starts only after a year is implausible. If persons infected early were at lower underlying risk from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 gives both patterns, because the window of 12 months or more and the omicron estimates are the ones measured against it.
+These patterns point to bias, not protection. Persons infected in 2020 and 2021 show no lower risk in their first year. Their estimates fall below 1 only later, in 2022. A protective effect that starts after a year is implausible. If persons infected early were healthier from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 explains both patterns.
 
 ## How the simulation works
 
-1.  **Cohort.** `Run.R` simulates 10 cohorts of 4,508,489 persons, the size of the paper’s cardiovascular cohort, with its age distribution and follow-up from 1 March 2020 to 31 December 2022.
-2.  **Infections.** 2,698,261 persons get a recorded infection, as in the paper, at dates that follow the Danish national case counts. One third of all infections are unrecorded. Persons with a higher underlying cardiovascular risk are less likely to be infected (avoidance of infection).
-3.  **True effects.** Each infection, recorded or unrecorded, multiplies the person’s hazard of each of 15 cardiovascular outcomes by a true hazard ratio for each time window. Every true hazard ratio is at least 1.01, so infection is harmful for every outcome in every window.
-4.  **Biases.** Three features of the data move the estimates away from the true hazard ratios: unrecorded infections, depletion of susceptibles and avoidance of infection. The model also lets infection kill some persons, more often those at high underlying risk. This changes the estimates by 3% or less, so it is in the model throughout and is not treated as a bias.
-5.  **Analysis.** Each cohort is analysed as the paper does, approximately: person-time is split by time window, 5-year age band and calendar year, and one Poisson model per outcome gives the estimated hazard ratios.
+1.  **Cohort.** `Run.R` simulates 10 cohorts of 4,508,489 persons, with the paper’s age distribution and follow-up from 1 March 2020 to 31 December 2022.
+2.  **Infections.** 2,698,261 persons get a recorded infection, as in the paper, timed by the Danish case counts. One third of all infections are unrecorded.
+3.  **True effects.** Each infection multiplies the hazard of each of 15 cardiovascular outcomes by a true hazard ratio for each time window. Every true hazard ratio is at least 1.01.
+4.  **Biases.** Unrecorded infections, depletion of susceptibles and avoidance of infection are built in. The model also lets infection kill some persons. This changes the estimates by 3% or less, so it is not treated as a bias.
+5.  **Analysis.** Each cohort is analysed approximately as the paper does: one Poisson model per outcome, with person-time split by time window, 5-year age band and calendar year.
 
-The true hazard ratios are fitted: they are the values for which the estimated hazard ratios match the published ones, under the rule that a true hazard ratio is at least 1.01 and does not increase with time since infection. [The model](#the-model) gives every input and its source.
+The true hazard ratios are fitted, so that the simulated estimates match the published ones. They are at least 1.01 and do not increase with time since infection. [The model](#the-model) gives every input and its source.
 
-## Result
+## Results
 
-### Supplementary Table 1: estimates by time window
+### By time window (Supplementary Table 1)
 
-At 12 months or more, the true hazard ratio is at least 1.01 for every outcome, and its geometric mean over the 12 outcomes is 1.19. The published estimates are below 1 for 11 of the 12. Over all windows, 57 of the 59 published estimates with an interval (97%) lie inside the 95% prediction interval of the simulated estimates. Each interval is for one estimate on its own.
+At 12 months or more, every true hazard ratio is at least 1.01, and the average is 1.19. Yet 11 of the 12 published estimates are below 1. The simulation reproduces them: 57 of the 59 published estimates (97%) lie inside the 95% prediction interval.
 
-![Assumed true, biased and published hazard ratios](figures/forest_outcome_truths.png)
+![True, simulated and published hazard ratios](figures/forest_outcome_truths.png)
 
-Each row is one of the 12 cardiovascular outcomes with the highest rate in the comparison group. Each panel is a time window.
+Red dot: true hazard ratio. Green band: 95% prediction interval for one study. Black square and bar: published estimate and 95% CI.
 
-- **Red dot:** the true hazard ratio.
-- **Green band:** the 95% prediction interval for the estimate of one study. A cohort has an estimate only if the window has at least 5 events, and a band needs estimates from at least 6 cohorts.
-- **Black square and bar:** the published estimate and its 95% CI, from Supplementary Table 1.
-
-Agreement with the published estimates:
+| Time window        | Simulated average | Published average |
+|--------------------|------------------:|------------------:|
+| Day 2 to \<1 month |              1.23 |              1.20 |
+| 1 to 5 months      |              1.01 |              1.00 |
+| 6 to 11 months     |              0.94 |              0.98 |
+| 12 months or more  |              0.83 |              0.82 |
 
 - **Outside the prediction interval:** aneurysm dissection at day 2 to \<1 month and ischemic heart disease at 6 to 11 months.
-- **Without an interval:** inflammatory heart disease at day 0-1, because fewer than 6 cohorts had 5 or more events.
-- **Geometric mean of the 12 outcomes, simulated against published:** 1.23 against 1.20 at day 2 to \<1 month; 1.01 against 1.00 at 1 to 5 months; 0.94 against 0.98 at 6 to 11 months; 0.83 against 0.82 at 12 months or more. Day 0-1 is left out, because some outcomes have no estimate in some simulated cohorts.
-- **At 12 months or more,** a mean of 4.4 of the 12 outcomes per simulated cohort have a 95% CI below 1, against 6 published.
+- **No interval:** inflammatory heart disease at day 0-1, because too few cohorts had 5 or more events. Day 0-1 has no average for the same reason.
+- **95% CI below 1 at 12 months or more:** 4.4 of the 12 outcomes per simulated study, against 6 published.
 
-The true hazard ratios do not increase with time since infection. For several outcomes the published estimate at 6 to 11 months is higher than at 1 to 5 months. The fit then gives both windows the same true value, and the simulated estimate lies above the published one at 1 to 5 months and below it at 6 to 11 months.
+For several outcomes the published estimate at 6 to 11 months is higher than at 1 to 5 months. The true hazard ratios cannot increase with time, so the fit gives both windows the same value. The appendix gives the [values per outcome](#appendix-values-per-outcome).
 
-The values per outcome are in the [appendix](#appendix-values-per-outcome).
+### By variant (Supplementary Table 5)
 
-### Supplementary Table 5: estimates by variant
+`Bias.R` analyses the simulated cohorts as Supplementary Table 5 does: the first year after infection, by the variant period of the positive test.
 
-`Bias.R` analyses the simulated cohorts as the paper’s Supplementary Table 5 does: the hazard ratio for 1 to 12 months, by the variant period of the positive test.
+| Variant  | Simulated average | Published average | Outcomes |
+|:---------|------------------:|------------------:|---------:|
+| Original |              1.04 |              1.00 |       12 |
+| Alpha    |              1.01 |              1.02 |       12 |
+| Delta    |              0.98 |              1.03 |       11 |
+| Omicron  |              0.95 |              0.97 |       12 |
 
-| Variant  | Simulated | Published | Outcomes |
-|:---------|----------:|----------:|---------:|
-| Original |      1.04 |      1.00 |       12 |
-| Alpha    |      1.01 |      1.02 |       12 |
-| Delta    |      0.98 |      1.03 |       11 |
-| Omicron  |      0.95 |      0.97 |       12 |
-
-Each value is the geometric mean over the outcomes with an estimate in every simulated cohort, and the published value is over the same outcomes. Omicron against the three earlier variants, the simulation gives 0.94 and the paper 0.96. The simulation reproduces the published pattern: in the first year, the estimates after an infection before the Omicron wave lie around 1, and those after an omicron infection are lower. The largest difference is for delta, 0.98 against 1.03 published.
+Each average is over the outcomes with an estimate in every simulated cohort, so delta has 11. The simulation reproduces the pattern: about 1 before the Omicron wave, and lower for omicron. Omicron against the earlier variants gives 0.94 in the simulation and 0.96 in the paper. The largest difference is for delta, 0.98 against 1.03.
 
 ### Extra diagnoses
 
-`Run.R` simulates each cohort a second time without infection. The persons, their natural death times and their event thresholds stay the same. With infection, a mean of 6,181 more persons per cohort have a cardiovascular diagnosis. That is 137.1 per 100,000 persons, or 8.7% of the 70,885 persons with a cardiovascular diagnosis in the paper. Of them, 3,738 have a recorded infection and 2,443 an unrecorded one.
+`Run.R` also simulates each cohort without infection, with everything else the same. Infection adds 6,181 persons with a cardiovascular diagnosis per cohort: 137.1 per 100,000 persons, or 8.7% of the 70,885 persons diagnosed in the paper. Of them, 3,738 have a recorded infection and 2,443 an unrecorded one.
 
-In the 12 months after a recorded infection, the risk of a first cardiovascular diagnosis is 0.586% with infection and 0.439% without. The base is the 665,704 persons per cohort with a recorded infection whose follow-up runs at least 12 months past it.
+In the 12 months after a recorded infection, the risk of a first cardiovascular diagnosis is 0.586% with infection and 0.439% without. The base is the 665,704 persons per cohort followed for at least 12 months after a recorded infection.
 
-The letter figure is [figures/forest_12m.png](figures/forest_12m.png). It shows the window of 12 months or more, with the outcomes sorted by the published hazard ratio. Its right column gives the cumulative extra diagnoses per 100,000 persons over the 24 months after a recorded infection. Its base is the 101,299 persons per cohort whose follow-up runs that long.
+[figures/forest_12m.png](figures/forest_12m.png) is the figure for the letter. It shows 12 months or more, and the extra diagnoses per 100,000 persons over 24 months after a recorded infection, among the 101,299 persons per cohort followed that long.
 
 ## Why the estimates fall below 1
 
-### How each bias works
+Each bias below has an example with 100 persons per group. In each example, infection multiplies every person’s risk by 1.20, so the true ratio is 1.20. A high-risk person has a 50% risk and a low-risk person a 5% risk. After each example comes what the bias does in the simulation, at 12 months or more. The biases are added one at a time, in this order.
 
-The three examples use 100 persons per group, and illustrative numbers rather than simulation output. In each, infection multiplies every person’s risk of a cardiovascular diagnosis by 1.20. A high-risk person has a 50% risk and a low-risk person a 5% risk. So the true ratio of risks is 1.20 in every example. Each example gives the ratio that a study would see. `Illustrations.R` draws them.
+### Unrecorded infections
 
-After each example comes the size of the bias in the simulation: how the estimate at 12 months or more changes when the bias is added. The biases are added in the order below, as in the figures of [the next section](#what-each-bias-does-in-the-simulation), and each value is the geometric mean over the 12 outcomes.
+About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group and raise its risk. In the example, 50 of 150 infections are unrecorded, and the study sees 1.09.
 
-**Unrecorded infections.** About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group. In the example, 50 of 150 infections are unrecorded. Their raised risk makes the comparison group look worse. The study would see 1.09.
-
-In the simulation, unrecorded infections lower the estimate from 1.18 to 1.04.
+**In the simulation:** 1.18 to 1.04.
 
 ![Unrecorded infections](figures/illustration_unrecorded.png)
 
-**Depletion of susceptibles.** Both groups start with the same 100 persons, followed for two years. A person diagnosed in year 1 is no longer free of cardiovascular disease, so they leave the comparison. Infection brings diagnoses forward, most of all in high-risk persons, so in year 2 the infected group has fewer high-risk persons left. Year 1 shows the true ratio, and year 2 shows 1.10.
+### Depletion of susceptibles
 
-The paper adds to this. It stops follow-up for every outcome at a person’s first diagnosis in any of the 15 cardiovascular groups, so a diagnosis of one outcome also removes the person from the comparisons of all the others.
+Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows 1.10. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
 
-In the simulation, depletion of susceptibles lowers the estimate from 1.04 to 0.98. The effect grows with time since infection, as depletion does:
+**In the simulation:** 1.04 to 0.98. The effect grows with time since infection:
 
 | Time window       | Before | After |
 |:------------------|-------:|------:|
@@ -122,39 +114,34 @@ In the simulation, depletion of susceptibles lowers the estimate from 1.04 to 0.
 
 ![Depletion of susceptibles](figures/illustration_depletion.png)
 
-**Higher-risk persons avoid infection.** If persons at high underlying risk are more careful, fewer of them are infected. By 2022, when most of the population had been infected, those still uninfected include a larger share of high-risk persons. The comparison group then looks riskier than the infected group, for a reason that has nothing to do with infection. The study would see 0.81.
+### Avoidance of infection
 
-In the simulation, avoidance of infection lowers the estimate from 0.98 to 0.83. It is the largest bias.
+If persons at high underlying risk are more careful, fewer of them are infected. By 2022, when most of the population had been infected, the persons still uninfected include a larger share of high-risk persons. The comparison group then looks riskier than the infected group. In the example, the study sees 0.81.
 
-![Higher-risk persons avoid infection](figures/illustration_avoidance.png)
+**In the simulation:** 0.98 to 0.83. This is the largest bias.
 
-### What each bias does in the simulation
+The difference per person is small: a person with twice the underlying risk of another of the same age has a 3.3% lower chance of infection. It matters because almost everyone was infected, so the comparison group becomes the persons who avoided infection. The table gives its mean underlying risk per half-year, relative to persons after a recorded infection.
 
-`Bias.R` switches the biases on and off in the simulated cohorts, with the true hazard ratios unchanged, and analyses each setting as the paper does.
+| Half-year from   | Comparison group, relative to infected |
+|:-----------------|---------------------------------------:|
+| 1 March 2020     |                                   1.15 |
+| 30 August 2020   |                                   1.15 |
+| 28 February 2021 |                                   1.14 |
+| 29 August 2021   |                                   1.16 |
+| 27 February 2022 |                                   1.28 |
+| 28 August 2022   |                                   1.28 |
 
-There is one figure per time window. Each starts with all biases off and adds them one at a time. The last steps are avoidance of increasing strength, and each replaces the step before it. Each label gives the mean underlying risk of the comparison group from 28 August to 31 December 2022, relative to persons after a recorded infection in the same period, both counted until their first cardiovascular diagnosis. It is pooled over ages and time windows, and is not a ratio of cardiovascular risk. Each point is the geometric mean over the outcomes with an estimate in every cohort: all 12, except at day 0-1, where 8 outcomes have one. Each bar is the 95% prediction interval for one study.
+In the paper, 83% of the person-time at 12 months or more lies after 10 March 2022, so these estimates are made against the comparison group of 2022.
 
-#### Day 0-1
+![Avoidance of infection](figures/illustration_avoidance.png)
 
-![Day 0-1](figures/bias_steps_w1.png)
+### All three together
 
-#### Day 2 to \<1 month
+`Bias.R` switches the biases on one at a time in the simulated cohorts, with the true hazard ratios unchanged.
 
-![Day 2 to \<1 month](figures/bias_steps_w2.png)
+![From the true hazard ratios to the published estimates](figures/bias_steps.png)
 
-#### 1 to 5 months
-
-![1 to 5 months](figures/bias_steps_w3.png)
-
-#### 6 to 11 months
-
-![6 to 11 months](figures/bias_steps_w4.png)
-
-#### 12 months or more
-
-![12 months or more](figures/bias_steps_w5.png)
-
-#### All windows
+Each point is the simulated average, with its 95% prediction interval for one study. At day 0-1, 8 outcomes have an estimate in every cohort. The order of the steps changes the size of each step, but not the first or last point.
 
 | Step | Day 0-1 | Day 2 to \<1 month | 1 to 5 months | 6 to 11 months | 12 months or more |
 |:---|---:|---:|---:|---:|---:|
@@ -162,58 +149,33 @@ There is one figure per time window. Each starts with all biases off and adds th
 | All biases off | 10.03 | 1.60 | 1.33 | 1.31 | 1.18 |
 | \+ unrecorded infections | 8.87 | 1.43 | 1.18 | 1.16 | 1.04 |
 | \+ depletion of susceptibles | 9.15 | 1.46 | 1.18 | 1.10 | 0.98 |
-| with avoidance: underlying risk of comparison group 1.03 x infected | 8.76 | 1.43 | 1.14 | 1.06 | 0.95 |
-| with avoidance: underlying risk of comparison group 1.11 x infected | 8.28 | 1.36 | 1.09 | 1.02 | 0.91 |
-| with avoidance: underlying risk of comparison group 1.19 x infected | 8.44 | 1.30 | 1.05 | 0.98 | 0.86 |
-| with avoidance: underlying risk of comparison group 1.28 x infected | 7.91 | 1.23 | 1.01 | 0.94 | 0.83 |
+| \+ avoidance of infection | 7.91 | 1.23 | 1.01 | 0.94 | 0.83 |
 
-- **12 months or more:** with all biases off, the estimate is 1.18, against a true value of 1.19. Unrecorded infections bring it to 1.04, depletion of susceptibles to 0.98, and avoidance to 0.83.
-- **1 to 5 and 6 to 11 months:** avoidance lowers these windows too, to 1.01 and 0.94. The true values are higher here (1.34 and 1.32) than at 12 months or more.
-- **Day 0-1 and day 2 to \<1 month:** with all biases off, the estimates are below the true values (10.03 against 11.61, and 1.60 against 1.62). The paper starts follow-up 30 days after the first test. For a person whose first test was positive, the early windows then lie about a month after infection, when the effect is smaller.
-
-The order of the steps is a choice. It changes the size of each step, but not the first or last point.
-
-### How avoidance changes the comparison group
-
-In the model, the persons who are infected are drawn with a weight. A person with twice the underlying risk of another person of the same age has a 3.3% lower weight. This is a small difference per person. It matters because 90% of the cohort had been infected by the end of 2022, so the persons who remain in the comparison group are increasingly those who avoided infection.
-
-The table gives the mean underlying risk of the comparison group in each half-year. As in the analysis, a person’s time counts until their first cardiovascular diagnosis, so persons at high risk leave as they are diagnosed. The last column compares the comparison group with persons after a recorded infection in the same half-year. Both columns are means of the underlying risk only, pooled over ages and time windows. They are not adjusted as the analysis is, and they are not ratios of cardiovascular risk.
-
-| Half-year from | Comparison group, relative to the whole cohort | Comparison group, relative to persons after a recorded infection |
-|:---|---:|---:|
-| 1 March 2020 | 0.98 | 1.15 |
-| 30 August 2020 | 0.97 | 1.15 |
-| 28 February 2021 | 0.96 | 1.14 |
-| 29 August 2021 | 0.95 | 1.16 |
-| 27 February 2022 | 1.04 | 1.28 |
-| 28 August 2022 | 1.02 | 1.28 |
-
-Most of the person-time at 12 months or more lies after 10 March 2022: 83% in the paper. So does most of the person-time at 1 to 11 months, because most recorded infections fell in the Omicron wave. These windows are compared with the comparison group of 2022.
+In the first month, the estimate with all biases off is already below the true value. The paper starts follow-up 30 days after the first test, so for a person whose first test was positive, these windows lie about a month after infection.
 
 ## Assumptions
 
-The argument needs one thing: that a cohort in which infection is harmful can give the published estimates. It does not need the true hazard ratios, or the size of each bias, to be exact.
+The argument needs one thing: that a cohort in which infection is harmful can give the published estimates. The true hazard ratios and the size of each bias do not need to be exact.
 
-- **The true hazard ratios are fitted.** They are the values for which the simulated study reproduces the published estimates, so they show what the published estimates are compatible with. Their geometric mean over the 12 outcomes is 1.34 at 1 to 5 months, 1.32 at 6 to 11 months and 1.19 at 12 months or more.
-- **Avoidance of infection is assumed.** No source measures it in the Danish cohort. The strength needed is small: a person with twice the underlying risk has a 3.3% lower chance of infection. It was chosen in a screen of model variants, with the true hazard ratios of an earlier fit, to reproduce the Omicron against pre-Omicron contrast of Supplementary Table 5. The screen used seeds 1 to 5, which are also 5 of the 10 seeds of the results here. Any other mechanism that makes the comparison group riskier during 2022 acts in the same way.
-- **How much underlying risk varies between persons is assumed.** At the same age, the 95th percentile of the underlying risk is 227.7 times the 5th. It stands for the risk that remains after the paper’s adjustment for age, sex and comorbidity. The same underlying risk drives every outcome, death and death caused by infection.
-- **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during the Omicron wave. The model applies it to all ages and the whole study period.
-- **The timing of unrecorded infections, the death hazard and the deaths caused by infection are assumed.**
-- **The analysis approximates the paper’s Cox model.** The paper uses age as the time scale and adjusts for sex and comorbidity. The simulation uses Poisson models with 5-year age bands and calendar year. Over 5 years of age, the simulated hazard rises 1.59-fold, so the bands leave some confounding by age within a band. Sex and comorbidity are not simulated.
-- **A recorded infection before the start of follow-up has two dates.** Its effect, and its variant in the analysis by variant, start 30 days before follow-up, as for a positive first test in the paper. Its calendar date, used only for the infection counts by month, can be earlier.
-- **The national case counts are applied to the cohort.** The Statens Serum Institut (SSI) counts by age group and the wastewater index both include reinfections.
+- **The true hazard ratios are fitted** to the published estimates. Their average is 1.34 at 1 to 5 months, 1.32 at 6 to 11 months and 1.19 at 12 months or more.
+- **Avoidance of infection is assumed.** No source measures it in Denmark. Its strength was chosen to reproduce the omicron against pre-Omicron contrast of Supplementary Table 5, in a screen of model variants on seeds 1 to 5 of the 10. Any other mechanism that makes the comparison group riskier in 2022 acts in the same way.
+- **How much underlying risk varies is assumed.** At the same age, the 95th percentile is 227.7 times the 5th. It stands for the risk left after the paper’s adjustment for age, sex and comorbidity.
+- **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during the Omicron wave. The model applies it to all ages and the whole period.
+- **The timing of unrecorded infections and the death hazards are assumed.**
+- **The analysis approximates the paper’s Cox model.** The paper uses age as the time scale and adjusts for sex and comorbidity. The simulation uses 5-year age bands, within which the hazard still rises 1.59-fold, and has no sex or comorbidity.
+- **The national case counts are applied to the cohort.** They include reinfections.
 
-These mechanisms are not in the simulation:
+Not in the simulation:
 
-- **Washout:** the paper starts follow-up 30 days after the first test and excludes persons with a cardiovascular diagnosis before then. For a person whose first test was positive, the acute phase falls inside those 30 days.
-- **Testing at hospital contact:** persons admitted with a cardiovascular event were tested on arrival, so a positive test and a diagnosis can fall on the same day. The paper names this as the likely cause of its day 0-1 results.
-- **Vaccination and variant severity:** infections in 2020 and early 2021 came before most people were vaccinated, and were on average more severe.
+- **Washout:** the paper starts follow-up 30 days after the first test, so for a positive first test the acute phase is left out.
+- **Testing at hospital contact:** a person admitted with a cardiovascular event is tested on arrival. The paper names this as the likely cause of its day 0-1 results.
+- **Vaccination and variant severity:** infections in 2020 and early 2021 came before most vaccination, and were on average more severe.
 - **Reinfections:** the simulation has first infections only.
-- **Changes in health care in 2020 and 2021:** delayed or caught-up diagnoses can move the estimates either way.
+- **Delayed or caught-up diagnoses in 2020 and 2021.**
 
 ## The model
 
-Each cohort follows its persons from 1 March 2020 to 31 December 2022. The table gives every input, with its source or with the word “assumed”. The name in brackets is the setting in `Run.R`.
+Every input, with its source. The name in brackets is the setting in `Run.R`.
 
 | Component | How `Run.R` draws it | Source |
 |----|----|----|
@@ -228,11 +190,11 @@ Each cohort follows its persons from 1 March 2020 to 31 December 2022. The table
 | Death | Gompertz in age: 0.8 per 1000 person-years at the median age, doubling every 8 years, times the underlying risk. Only a living person is infected. An infection during follow-up kills with probability 0.03 at age 80 and average underlying risk (`p80`), more at older ages and higher underlying risk. Every person is alive at the start of follow-up, so an earlier infection does not kill. | Assumed. |
 | Analysis | Person-time split by time window since the recorded test, 5-year age band and calendar year, and stopped at the first diagnosis of any of the 15 outcomes. One Poisson model per outcome. | Approximates the paper’s Cox model. |
 
-The model has no calendar-time multiplier on the cardiovascular hazards: a person’s hazard changes only with age, underlying risk and infection. The rate in the comparison group still rises after 10 March 2022. Ageing, unrecorded infections, avoidance of infection and deaths all change it, and the simulation does not separate their shares.
+A person’s cardiovascular hazard changes only with age, underlying risk and infection. There is no calendar-time effect.
 
 ## How the simulated cohort matches the paper
 
-`Run.R` compares the first simulated cohort with the paper, its supplement and national data. In the Role column, “input” marks a quantity that the model takes from the source or is fitted to. “Check” marks a quantity that no input sets.
+The first simulated cohort against the paper and national data. “Input” marks a quantity the model is set or fitted to. “Check” marks one that no input sets.
 
 | Quantity | Simulated | Published | Source | Role |
 |:---|:---|:---|:---|:---|
@@ -257,32 +219,27 @@ The model has no calendar-time multiplier on the cardiovascular hazards: a perso
 
 ![Recorded and unrecorded infections per month, against SSI](figures/cohort_infection_timing.png)
 
-The SSI line is the national count of first infections per month, scaled so that its total over the study period equals the paper’s 2,698,261 recorded positives. So the figure compares the timing, not the level. The grey vertical line marks 10 March 2022, when widespread testing ended.
+The SSI line is the national count of first infections, scaled to the paper’s 2,698,261 recorded positives, so it compares timing only. The grey line marks 10 March 2022, when widespread testing ended.
 
 ![Person-years per time window, simulated and published](figures/cohort_person_time.png)
 
 ![Rate per outcome in the comparison group, simulated and published](figures/cohort_baseline_rates.png)
 
-The figures label the comparison group “test-negative”, as the paper does. The cohort agrees closely with the published data in age, follow-up, person-time, recorded infection and rates in the comparison group. These differences are larger:
+The figures call the comparison group “test-negative”, as the paper does. The cohort agrees closely with the paper. The larger differences:
 
-- **Recorded infections after widespread testing ended.** SSI continued to record first infections after 10 March 2022. The model puts 3.9% of recorded infections after that day, a share fitted to the person-years of the paper’s supplementary tables, not to SSI. From April to December 2022, the model has 0.33 times the scaled SSI count. In March 2022 it has 1.38 times.
-- **Recorded infections before the Omicron wave.** The model spreads them evenly up to 21 December 2021, so the 2020 and 2021 waves are absent from the figure above. The share per calendar year still agrees with SSI.
-- **Person-years at 12 months or more to 10 March 2022.** The cohort has 0.86 times the published person-years in Supplementary Table 7.
-- **Persons with a first cardiovascular diagnosis after a recorded positive.** The cohort has 15,079, against 16,475 in the paper.
+- **Recorded infections after 10 March 2022.** The model puts 3.9% of recorded infections after that day, fitted to the paper’s person-years rather than to SSI. From April to December 2022 it has 0.33 times the scaled SSI count, and in March 2022 1.38 times.
 
-The comparison with Erikstrup et al. is approximate. Erikstrup counts healthy blood donors aged 17-72, and the cohort has all ages. The model has first infections only, and a donor can seroconvert on a reinfection. The one-third unrecorded share applies to the whole study period, but the timing weights move unrecorded infections later, so in the Erikstrup window only 26.3% of infections are unrecorded.
+- **Recorded infections before the Omicron wave** are spread evenly, so the 2020 and 2021 waves are absent. The share per calendar year still agrees with SSI.
+
+- **Person-years at 12 months or more to 10 March 2022:** 0.86 times the published value in Supplementary Table 7.
+
+- **Persons with a first cardiovascular diagnosis after a recorded positive:** 15,079, against 16,475.
+
+- **Unrecorded share in the Erikstrup window:** 26.3%, because the model moves unrecorded infections later. Erikstrup et al. studied blood donors aged 17-72, and a donor can seroconvert on a reinfection.
 
 ## Appendix: values per outcome
 
-The tables give the values in the first figure, one table per outcome, in the order of the figure. The last column is the extra rate of first diagnoses in the window: the rate with infection less the rate without, per 100,000 person-years.
-
-- **Persons:** those with a recorded infection, each simulated with and without infection.
-- **Windows:** measured from the recorded infection, or from the start of follow-up for an infection before it, as in the analysis. The window of 12 months or more runs to the end of follow-up.
-- **At risk:** until a first diagnosis of the outcome, death or the end of follow-up. A diagnosis of another outcome does not stop the count.
-- **Death:** infection does not kill in this comparison. Each person has the same death time with and without infection.
-- **Value:** the mean over the 10 cohorts.
-
-Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall just below 0. This comes from Monte Carlo error, and from infection bringing diagnoses forward, which removes persons from risk in later windows.
+The values in the first figure, in its order. The last column is the extra rate of first diagnoses caused by infection, per 100,000 person-years, among persons with a recorded infection, each simulated with and without infection. It is the mean over the 10 cohorts. Where the true hazard ratio is 1.01, it can fall just below 0, from Monte Carlo error and because earlier diagnoses leave fewer persons at risk later.
 
 ### Pulmonary embolism
 
@@ -406,14 +363,14 @@ Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall j
 
 ## How to run it
 
-1.  Run `Rscript Run.R` from the repository root. It needs R 4.6 with data.table, ggplot2, patchwork and knitr.
-2.  Run `Rscript Bias.R` from the repository root. It reads `results/run.rds`, needs R 4.6 with data.table, ggplot2 and knitr, and simulates 130 cohorts.
-3.  Run `Rscript Illustrations.R` from the repository root. It needs R 4.6 with data.table, ggplot2 and knitr.
-4.  Run `quarto render README.qmd` to rebuild this README from `results/run.rds`, `results/bias.rds` and `results/illustrations.rds`.
+From the repository root, with R 4.6, data.table, ggplot2, patchwork and knitr:
 
-`Run.R` sets the model in its CFG section, and sources the functions in `R/functions.R`. It checks the md5 of the 3 SSI files in `data/ssi/`, and stops if a value in CFG differs from the SSI file that it comes from. It prints its results, draws 5 figures into `figures/`, and saves the results to `results/run.rds`.
+1.  `Rscript Run.R`: the main simulation. Each cohort needs about 11 GiB of memory, and it runs 2 at a time, so it needs at least 25 GB free.
+2.  `Rscript Bias.R`: the biases and the analysis by variant. It simulates 130 more cohorts.
+3.  `Rscript Illustrations.R`: the three examples.
+4.  `quarto render README.qmd`: this README, from `results/`.
 
-`Run.R` runs 2 workers. Each simulated cohort needs about 11 GiB of memory, so run it on a machine with at least 25 GB free. On Windows it uses 1 worker.
+`Run.R` checks the md5 of the SSI files in `data/ssi/`, and stops if a value in its CFG section differs from the file it comes from.
 
 ## Layout
 
@@ -421,7 +378,7 @@ Where the true hazard ratio is 1.01, the extra rate is close to 0 and can fall j
 |----|----|
 | `Run.R` | The model settings, the published values with their sources, the analysis and the output. |
 | `R/functions.R` | The simulation, the analysis and the cohort description. |
-| `Bias.R` | What each bias contributes, the strength of avoidance, and the analysis by variant. |
+| `Bias.R` | What each bias contributes, and the analysis by variant. |
 | `Illustrations.R` | The three examples with 100 persons per group. |
 | `README.qmd` | The source of this README. |
 | `data/ssi/` | The SSI source files, byte for byte, with their sources and md5s. |
