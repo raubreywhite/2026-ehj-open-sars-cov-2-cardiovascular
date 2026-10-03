@@ -120,16 +120,7 @@ If persons at high underlying risk are more careful, fewer of them are infected.
 
 **In the simulation:** 0.98 to 0.83. This is the largest bias.
 
-The difference per person is small: a person with twice the underlying risk of another of the same age has a 3.3% lower chance of infection. It matters because almost everyone was infected, so the comparison group becomes the persons who avoided infection. The table gives its mean underlying risk per half-year, relative to persons after a recorded infection.
-
-| Half-year from   | Comparison group, relative to infected |
-|:-----------------|---------------------------------------:|
-| 1 March 2020     |                                   1.15 |
-| 30 August 2020   |                                   1.15 |
-| 28 February 2021 |                                   1.14 |
-| 29 August 2021   |                                   1.16 |
-| 27 February 2022 |                                   1.28 |
-| 28 August 2022   |                                   1.28 |
+The difference per person is small: a person with twice the underlying risk of another of the same age has a 3.3% lower chance of infection. It matters because almost everyone was infected, so the comparison group became the persons who avoided infection. In the simulation, the average underlying risk of the comparison group was 15% higher than that of infected persons in 2020, and 28% higher in late 2022.
 
 In the paper, 83% of the person-time at 12 months or more lies after 10 March 2022, so these estimates are made against the comparison group of 2022.
 

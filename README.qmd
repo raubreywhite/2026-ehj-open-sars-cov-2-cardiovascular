@@ -190,18 +190,7 @@ If persons at high underlying risk are more careful, fewer of them are infected.
 
 **In the simulation:** `r sv(5, DEPL)` to `r sv(5, AVOID)`. This is the largest bias.
 
-The difference per person is small: a person with twice the underlying risk of another of the same age has a `r pct(1 - av_double)` lower chance of infection. It matters because almost everyone was infected, so the comparison group becomes the persons who avoided infection. The table gives its mean underlying risk per half-year, relative to persons after a recorded infection.
-
-```{r}
-knitr::kable(
-  ng[, .(
-    "Half-year from" = trimws(from),
-    "Comparison group, relative to infected" = fifelse(is.nan(vs_inf), "none", f2(vs_inf))
-  )],
-  format = "pipe",
-  align = "lr"
-)
-```
+The difference per person is small: a person with twice the underlying risk of another of the same age has a `r pct(1 - av_double)` lower chance of infection. It matters because almost everyone was infected, so the comparison group became the persons who avoided infection. In the simulation, the average underlying risk of the comparison group was `r pct(ng[1, vs_inf] - 1, 0)` higher than that of infected persons in 2020, and `r pct(ng[.N, vs_inf] - 1, 0)` higher in late 2022.
 
 In the paper, `r pct(1 - r$pub_py[6, "t7"] / r$pub_py[6, "t1"], 0)` of the person-time at 12 months or more lies after 10 March 2022, so these estimates are made against the comparison group of 2022.
 
