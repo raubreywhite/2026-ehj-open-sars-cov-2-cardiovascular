@@ -56,13 +56,14 @@ Red dot: true hazard ratio. Green band: 95% prediction interval for one study. B
 
 | Time window        | Simulated average | Published average |
 |--------------------|------------------:|------------------:|
+| Day 0-1            |              7.91 |              7.77 |
 | Day 2 to \<1 month |              1.23 |              1.20 |
 | 1 to 5 months      |              1.01 |              1.00 |
 | 6 to 11 months     |              0.94 |              0.98 |
 | 12 months or more  |              0.83 |              0.82 |
 
 - **Outside the prediction interval:** aneurysm dissection at day 2 to \<1 month and ischemic heart disease at 6 to 11 months.
-- **No interval:** inflammatory heart disease at day 0-1, because too few cohorts had 5 or more events. Day 0-1 has no average for the same reason.
+- **No interval:** inflammatory heart disease at day 0-1, because too few cohorts had 5 or more events. At day 0-1, the averages are over the 8 outcomes with an estimate in every simulated cohort.
 - **95% CI below 1 at 12 months or more:** 4.4 of the 12 outcomes per simulated study, against 6 published.
 
 For several outcomes the published estimate at 6 to 11 months is higher than at 1 to 5 months. The true hazard ratios cannot increase with time, so the fit gives both windows the same value. The appendix gives the [values per outcome](#appendix-values-per-outcome).
@@ -104,13 +105,15 @@ About one third of infections in the Omicron wave were not recorded, so some inf
 
 Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows 1.10. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
 
-**In the simulation:** 1.04 to 0.98. The effect grows with time since infection:
+**In the simulation:** 1.04 to 0.98. Depletion needs time to act, so it lowers the estimates only from 6 months on:
 
-| Time window       | Before | After |
-|:------------------|-------:|------:|
-| 1 to 5 months     |   1.18 |  1.18 |
-| 6 to 11 months    |   1.16 |  1.10 |
-| 12 months or more |   1.04 |  0.98 |
+| Time window        | Before | After |
+|:-------------------|-------:|------:|
+| Day 0-1            |   8.87 |  9.15 |
+| Day 2 to \<1 month |   1.43 |  1.46 |
+| 1 to 5 months      |   1.18 |  1.18 |
+| 6 to 11 months     |   1.16 |  1.10 |
+| 12 months or more  |   1.04 |  0.98 |
 
 ![Depletion of susceptibles](figures/illustration_depletion.png)
 

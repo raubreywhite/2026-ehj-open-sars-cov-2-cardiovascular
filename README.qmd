@@ -107,10 +107,10 @@ Red dot: true hazard ratio. Green band: 95% prediction interval for one study. B
 
 | Time window | Simulated average | Published average |
 |---|---:|---:|
-`r paste(sprintf("| %s | %s | %s |", WL[pool[window >= 2L, window]], f2(pool[window >= 2L, gm]), f2(pool[window >= 2L, pub])), collapse = "\n")`
+`r fin <- bz$steps[step == tail(bz$step_lev, 1)][bz$true_w, on = "window"]; paste(sprintf("| %s | %s | %s |", WL[fin$window], f2(fin$gm), f2(fin$pub)), collapse = "\n")`
 
 - **Outside the prediction interval:** `r knitr::combine_words(sprintf("%s at %s", tolower(pretty_name(out$outcome)), wl[out$window]))`.
-- **No interval:** `r knitr::combine_words(sprintf("%s at %s", tolower(pretty_name(nopi$outcome)), wl[nopi$window]))`, because too few cohorts had 5 or more events. Day 0-1 has no average for the same reason.
+- **No interval:** `r knitr::combine_words(sprintf("%s at %s", tolower(pretty_name(nopi$outcome)), wl[nopi$window]))`, because too few cohorts had 5 or more events. At day 0-1, the averages are over the `r bz$true_w[window == 1L, n_out]` outcomes with an estimate in every simulated cohort.
 - **95% CI below 1 at 12 months or more:** `r f1(mean(r$sig$n))` of the `r n_out` outcomes per simulated study, against `r r$n_sig_pub` published.
 
 For several outcomes the published estimate at 6 to 11 months is higher than at 1 to 5 months. The true hazard ratios cannot increase with time, so the fit gives both windows the same value. The appendix gives the [values per outcome](#appendix-values-per-outcome).
@@ -167,10 +167,10 @@ About one third of infections in the Omicron wave were not recorded, so some inf
 
 Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows `r seen("Depletion of susceptibles")`. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
 
-**In the simulation:** `r sv(5, UNREC)` to `r sv(5, DEPL)`. The effect grows with time since infection:
+**In the simulation:** `r sv(5, UNREC)` to `r sv(5, DEPL)`. Depletion needs time to act, so it lowers the estimates only from 6 months on:
 
 ```{r}
-dp <- dcast(stp[step %in% c(UNREC, DEPL) & window >= 3L], window ~ step, value.var = "gm")
+dp <- dcast(stp[step %in% c(UNREC, DEPL)], window ~ step, value.var = "gm")
 knitr::kable(
   data.table(
     "Time window" = WL[dp$window],
