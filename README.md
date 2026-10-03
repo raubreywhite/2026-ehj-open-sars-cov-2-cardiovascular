@@ -1,14 +1,14 @@
 
 
-# Bias and the long-term cardiovascular risk after SARS-CoV-2 infection
+# Long-term cardiovascular risk after SARS-CoV-2 infection: bias in Boyd et al. 2026
 
-## What this repository asks
+## What this repository shows
 
-Boyd et al. 2026, “SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity” (EHJ Open, doi:10.1093/ehjopen/oeag121), followed 4.5 million Danish persons with a SARS-CoV-2 test. From 12 months after a positive test, most of their hazard ratios for cardiovascular disease are below 1. Read as causal, infection would protect against cardiovascular disease.
+Boyd et al. 2026, “SARS-CoV-2 infection and long-term risk of cardiovascular and renal morbidity” (EHJ Open, doi:10.1093/ehjopen/oeag121), followed 4.5 million Danish persons with a SARS-CoV-2 test. At 12 months or more after a positive test, 11 of the 12 most common cardiovascular outcomes have a hazard ratio below 1, and 6 have a 95% CI below 1. The authors conclude that infection carries little long-term cardiovascular risk.
 
-This repository asks one question: **if infection in truth increases cardiovascular risk, can a study designed like Boyd et al. still give the published estimates?**
+**The published estimates do not support that conclusion.** We simulated a cohort in which infection increases the risk of every cardiovascular outcome in every time window. At 12 months or more, the true hazard ratios have a geometric mean of 1.19 over the 12 outcomes. Analysed as the paper does, the simulated cohort gives a geometric mean of 0.83, against 0.82 published. 57 of the 59 published estimates with a prediction interval lie inside it. The simulation also reproduces the published estimates by virus variant. A design that reports a harmful effect as a protective one cannot be used to rule out harm.
 
-The answer from the simulation is yes. In a simulated cohort where infection increases the risk of every outcome in every time window, an approximation of the paper’s analysis gives estimates that agree with the main published estimates by time since infection (Supplementary Table 1), and with the broad pattern of the published estimates by virus variant (Supplementary Table 5). The simulation shows that harmful true effects are compatible with the published estimates. It does not show that the true effects in the simulation are the true effects of infection.
+The main cause is the comparison group. By the end of 2022, 90% of the cohort had been infected. The persons still in the comparison group were at higher underlying cardiovascular risk, because higher-risk persons were slightly more likely to avoid infection. The comparison group also held persons infected without a positive test. In the paper, 83% of the person-time at 12 months or more lies after 10 March 2022, so these estimates are made against this comparison group.
 
 ## Terms used here
 
@@ -36,7 +36,7 @@ The answer from the simulation is yes. In a simulated cohort where infection inc
 
 **Supplementary Table 5, estimates by variant.** For persons infected before the Omicron wave, the geometric mean over the 12 outcomes for 1 to 12 months is 1.00 (original strain), 1.02 (alpha), 1.05 (delta). For omicron it is 0.97.
 
-The two patterns constrain the explanation. The persons infected in 2020 and 2021 show no lower risk in their first year, but their estimates fall below 1 later. If persons infected early were at lower underlying risk from the start, that would lower their first-year estimates too, other things equal. A bias that builds up over follow-up, or that comes from a comparison group that changes in 2022, fits both patterns more easily.
+The two patterns point to bias, not protection. The persons infected in 2020 and 2021 show no lower risk in their first year after infection. Their estimates fall below 1 only later, in 2022. A protective effect that starts only after a year is implausible. If persons infected early were at lower underlying risk from the start, their first-year estimates would be lower too. A comparison group that becomes riskier in 2022 gives both patterns, because the window of 12 months or more and the omicron estimates are the ones measured against it.
 
 ## How the simulation works
 
@@ -52,7 +52,7 @@ The true hazard ratios are fitted: they are the values for which the estimated h
 
 ### Supplementary Table 1: estimates by time window
 
-At 12 months or more, the true hazard ratio is at least 1.01 for every outcome, and its geometric mean over the 12 outcomes is 1.19. The published estimates are below 1 for 11 of the 12. Over all windows, 57 of the 59 published estimates with an interval (97%) lie inside the 95% prediction interval of the simulated estimates. Each interval is for one estimate on its own. The published estimates are also the values that the true hazard ratios were fitted to, so this shows that the fitted model can produce them, not that the model is right.
+At 12 months or more, the true hazard ratio is at least 1.01 for every outcome, and its geometric mean over the 12 outcomes is 1.19. The published estimates are below 1 for 11 of the 12. Over all windows, 57 of the 59 published estimates with an interval (97%) lie inside the 95% prediction interval of the simulated estimates. Each interval is for one estimate on its own.
 
 ![Assumed true, biased and published hazard ratios](figures/forest_outcome_truths.png)
 
@@ -84,7 +84,7 @@ The values per outcome are in the [appendix](#appendix-values-per-outcome).
 | Delta    |      0.98 |      1.03 |       11 |
 | Omicron  |      0.95 |      0.97 |       12 |
 
-Each value is the geometric mean over the outcomes with an estimate in every simulated cohort, and the published value is over the same outcomes. Omicron against the three earlier variants, the simulation gives 0.94 and the paper 0.96. The simulation agrees with the paper in this broad pattern: in the first year, the estimates after an infection before the Omicron wave lie around 1, and those after an omicron infection slightly lower. It does not agree for every variant: for delta it gives 0.98, against 1.03 published.
+Each value is the geometric mean over the outcomes with an estimate in every simulated cohort, and the published value is over the same outcomes. Omicron against the three earlier variants, the simulation gives 0.94 and the paper 0.96. The simulation reproduces the published pattern: in the first year, the estimates after an infection before the Omicron wave lie around 1, and those after an omicron infection are lower. The largest difference is for delta, 0.98 against 1.03 published.
 
 ### Extra diagnoses
 
@@ -172,7 +172,7 @@ The order of the steps is a choice. It changes the size of each step, but not th
 | Deaths caused by infection | 0.97 | 0.98 | 0.99 | 0.99 | 0.99 |
 | Differences in underlying risk, with avoidance of infection | 0.90 | 0.86 | 0.86 | 0.81 | 0.80 |
 
-The decomposition describes the simulated model. It does not measure the biases in the cohort of Boyd et al.
+At 12 months or more, the two biases in the comparison group make most of the difference. Differences in underlying risk with avoidance of infection multiply the estimate by 0.80, and unrecorded infections by 0.89. Deaths caused by infection and stopping at the first diagnosis of any outcome each change it by 2% or less.
 
 ### How avoidance changes the comparison group
 
@@ -191,12 +191,12 @@ The table gives the mean underlying risk of the comparison group in each half-ye
 
 Most of the person-time at 12 months or more lies after 10 March 2022: 83% in the paper. So does most of the person-time at 1 to 11 months, because most recorded infections fell in the Omicron wave. These windows are compared with the comparison group of 2022.
 
-## What the simulation does not show, and its assumptions
+## Assumptions
 
-The simulation shows that harmful true effects are compatible with the published estimates. These limits apply:
+The argument needs one thing: that a cohort in which infection is harmful can give the published estimates. It does not need the true hazard ratios, or the size of each bias, to be exact.
 
-- **The true hazard ratios are fitted.** They are the values for which the simulated study reproduces the published estimates. The simulation does not show that they are the true effects of infection. They are larger than what the published estimates suggest: their geometric mean over the 12 outcomes is 1.34 at 1 to 5 months, 1.32 at 6 to 11 months and 1.19 at 12 months or more.
-- **Avoidance of infection is assumed.** No source measures it in the Danish cohort. Its strength was chosen in a screen of model variants, with the true hazard ratios of an earlier fit, as the value that best reproduced the Omicron against pre-Omicron contrast of Supplementary Table 5. The screen used seeds 1 to 5, which are also 5 of the 10 seeds of the results here. Other mechanisms that make the comparison group riskier during 2022 would act in the same way.
+- **The true hazard ratios are fitted.** They are the values for which the simulated study reproduces the published estimates, so they show what the published estimates are compatible with. Their geometric mean over the 12 outcomes is 1.34 at 1 to 5 months, 1.32 at 6 to 11 months and 1.19 at 12 months or more.
+- **Avoidance of infection is assumed.** No source measures it in the Danish cohort. The strength needed is small: a person with twice the underlying risk has a 3.3% lower chance of infection. It was chosen in a screen of model variants, with the true hazard ratios of an earlier fit, to reproduce the Omicron against pre-Omicron contrast of Supplementary Table 5. The screen used seeds 1 to 5, which are also 5 of the 10 seeds of the results here. Any other mechanism that makes the comparison group riskier during 2022 acts in the same way.
 - **The size of the differences in underlying risk is assumed.** At the same age, the 95th percentile of the underlying risk is 227.7 times the 5th. It stands for the risk that remains after the paper’s adjustment for age, sex and comorbidity. The same underlying risk drives every outcome, death and death caused by infection.
 - **One third of infections are unrecorded.** Erikstrup et al. 2022 measured this in blood donors aged 17-72 during the Omicron wave. The model applies it to all ages and the whole study period.
 - **The timing of unrecorded infections, the death hazard and the deaths caused by infection are assumed.**
@@ -204,7 +204,7 @@ The simulation shows that harmful true effects are compatible with the published
 - **A recorded infection before the start of follow-up has two dates.** Its effect, and its variant in the analysis by variant, start 30 days before follow-up, as for a positive first test in the paper. Its calendar date, used only for the infection counts by month, can be earlier.
 - **The national case counts are applied to the cohort.** The Statens Serum Institut (SSI) counts by age group and the wastewater index both include reinfections.
 
-These mechanisms are not in the simulation. Each could move the paper’s estimates:
+These mechanisms are not in the simulation:
 
 - **Washout:** the paper starts follow-up 30 days after the first test and excludes persons with a cardiovascular diagnosis before then. For a person whose first test was positive, the acute phase falls inside those 30 days.
 - **Testing at hospital contact:** persons admitted with a cardiovascular event were tested on arrival, so a positive test and a diagnosis can fall on the same day. The paper names this as the likely cause of its day 0-1 results.
@@ -271,7 +271,7 @@ The figures label the comparison group “test-negative”, as the paper does. T
 - **Person-years at 12 months or more to 10 March 2022.** The cohort has 0.86 times the published person-years in Supplementary Table 7.
 - **Persons with a first cardiovascular diagnosis after a recorded positive.** The cohort has 15,079, against 16,475 in the paper.
 
-The comparison with Erikstrup et al. is weak. Erikstrup counts healthy blood donors aged 17-72, and the cohort has all ages. The model has first infections only, and a donor can seroconvert on a reinfection. The one-third unrecorded share applies to the whole study period, but the timing weights move unrecorded infections later, so in the Erikstrup window only 26.3% of infections are unrecorded.
+The comparison with Erikstrup et al. is approximate. Erikstrup counts healthy blood donors aged 17-72, and the cohort has all ages. The model has first infections only, and a donor can seroconvert on a reinfection. The one-third unrecorded share applies to the whole study period, but the timing weights move unrecorded infections later, so in the Erikstrup window only 26.3% of infections are unrecorded.
 
 ## Supplement: Norwegian national data from NIPH/FHI
 
