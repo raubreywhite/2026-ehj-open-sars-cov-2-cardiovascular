@@ -94,7 +94,7 @@ These patterns point to bias, not protection. Persons infected in 2020 and 2021 
 1. **Cohort.** `Run.R` simulates `r n_seed` cohorts of `r f0(cfg$n)` persons, with the paper's age distribution and follow-up from 1 March 2020 to 31 December 2022.
 2. **Infections.** `r f0(cfg$p_infected * cfg$n)` persons get a recorded infection, as in the paper, timed by the Danish case counts. One third of all infections are unrecorded.
 3. **True effects.** Each infection multiplies the hazard of each of 15 cardiovascular outcomes by a true hazard ratio for each time window. Every true hazard ratio is at least 1.01.
-4. **Biases.** Depletion of susceptibles, unrecorded infections and avoidance of infection are built in. The model also lets infection kill some persons. This changes the estimates by `r pct(bz$dai_tab[, max(abs(1 - with / without))], 0)` or less, so it is not treated as a bias.
+4. **Biases.** Unrecorded infections, depletion of susceptibles and avoidance of infection are built in. The model also lets infection kill some persons. This changes the estimates by `r pct(bz$dai_tab[, max(abs(1 - with / without))], 0)` or less, so it is not treated as a bias.
 5. **Analysis.** Each cohort is analysed approximately as the paper does: one Poisson model per outcome, with person-time split by time window, 5-year age band and calendar year.
 
 The true hazard ratios are fitted, so that the simulated estimates match the published ones. They are at least 1.01 and do not increase with time since infection. [The model](#the-model) gives every input and its source.
@@ -157,20 +157,40 @@ AVOID <- "+ avoidance of infection"
 sv <- function(w, lab) f2(stp[window == w & step == lab, gm])
 ```
 
+At 12 months or more, adding the three biases one at a time to the simulated cohorts takes the estimate from the true value to the published one:
+
+| Step | Estimate | What it shows |
+|---|---:|---|
+| True | `r sv(5, "True")` | |
+| All biases off | `r sv(5, "All biases off")` | Close to the true value |
+| + unrecorded infections | `r sv(5, UNREC)` | Diluted toward 1 |
+| + depletion of susceptibles | `r sv(5, DEPL)` | Pushed below 1 |
+| + avoidance of infection | `r sv(5, AVOID)` | Published: `r f2(bz$true_w[window == 5L, pub])` |
+
+Unrecorded infections only dilute an effect: on their own, they bring the estimate toward 1 but not below it. Depletion of susceptibles and avoidance of infection change who is left in each group, and these can take it below 1.
+
 Each bias below has an example with 100 persons per group. In each example, infection multiplies every person's risk by `r f2(il$cfg$hr)`, so the true ratio is `r f2(il$cfg$hr)`. A high-risk person has a `r pct(il$cfg$risk[["high"]], 0)` risk and a low-risk person a `r pct(il$cfg$risk[["low"]], 0)` risk. After each example comes what the bias does in the simulation, at 12 months or more. The biases are added one at a time, in this order.
+
+### Unrecorded infections
+
+About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group and raise its risk. In the example, 50 of 150 infections are unrecorded, and the study sees `r seen("Unrecorded infections")`.
+
+**In the simulation:** `r sv(5, "All biases off")` to `r sv(5, UNREC)`.
+
+![Unrecorded infections](figures/illustration_unrecorded.png)
 
 ### Depletion of susceptibles
 
 Infection brings diagnoses forward, most of all in high-risk persons. A person diagnosed is no longer followed. So after a year, the infected group has fewer high-risk persons left than the comparison group. In the example, year 1 shows the true ratio, and year 2 shows `r seen("Depletion of susceptibles")`. The paper adds to this: it stops follow-up for every outcome at the first diagnosis of any of the 15 outcomes.
 
-**In the simulation:** `r sv(5, "All biases off")` to `r sv(5, DEPL)`. Depletion needs time to act, so its effect grows with time since infection. The table gives the simulated average without and with depletion, with the other biases off:
+**In the simulation:** `r sv(5, UNREC)` to `r sv(5, DEPL)`. Depletion needs time to act, so it lowers the estimates only from 6 months on. The table gives the simulated average without and with depletion, with unrecorded infections in both:
 
 ```{r}
-dp <- dcast(stp[step %in% c("All biases off", DEPL)], window ~ step, value.var = "gm")
+dp <- dcast(stp[step %in% c(UNREC, DEPL)], window ~ step, value.var = "gm")
 knitr::kable(
   data.table(
     "Time window" = WL[dp$window],
-    "Without depletion" = f2(dp[["All biases off"]]),
+    "Without depletion" = f2(dp[[UNREC]]),
     "With depletion" = f2(dp[[DEPL]])
   ),
   format = "pipe",
@@ -180,19 +200,11 @@ knitr::kable(
 
 ![Depletion of susceptibles](figures/illustration_depletion.png)
 
-### Unrecorded infections
-
-About one third of infections in the Omicron wave were not recorded, so some infected persons stay in the comparison group and raise its risk. In the example, 50 of 150 infections are unrecorded, and the study sees `r seen("Unrecorded infections")`.
-
-**In the simulation:** `r sv(5, DEPL)` to `r sv(5, UNREC)`.
-
-![Unrecorded infections](figures/illustration_unrecorded.png)
-
 ### Avoidance of infection
 
 If persons at high underlying risk are more careful, fewer of them are infected. By 2022, when most of the population had been infected, the persons still uninfected include a larger share of high-risk persons. The comparison group then looks riskier than the infected group. In the example, the study sees `r seen("Higher-risk persons avoid infection")`.
 
-**In the simulation:** `r sv(5, UNREC)` to `r sv(5, AVOID)`. This is the largest bias.
+**In the simulation:** `r sv(5, DEPL)` to `r sv(5, AVOID)`. This is the largest bias.
 
 The difference per person is small: a person with twice the underlying risk of another of the same age has a `r pct(1 - av_double)` lower chance of infection. It matters because almost everyone was infected, so the comparison group became the persons who avoided infection. In the simulation, the average underlying risk of the comparison group was `r pct(ng[1, vs_inf] - 1, 0)` higher than that of infected persons in 2020, and `r pct(ng[.N, vs_inf] - 1, 0)` higher in late 2022.
 
