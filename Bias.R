@@ -30,7 +30,7 @@
 # It draws figures/bias_steps.png: per window, the estimate as the biases are
 # added one at a time.
 #
-# Needs R 4.6 with data.table, ggplot2 and knitr.
+# Needs R 4.6 with data.table, ggplot2, patchwork and knitr.
 # Run it from the repository root with: Rscript Bias.R
 
 library(data.table)
@@ -355,4 +355,21 @@ q <- q +
     axis.text = element_text(colour = "black"),
     axis.title = element_text(colour = "black")
   )
-ggsave("figures/bias_steps.png", q, width = 300, height = 95, units = "mm", dpi = 200, bg = "white")
+# What each step shows, as a text column to the right of the panels.
+WHAT <- c(
+  "True" = "The effect of infection",
+  "All biases off" = "Close to the true value",
+  "+ unrecorded infections" = "Dilutes toward 1",
+  "+ depletion of susceptibles" = "Can push below 1",
+  "+ avoidance of infection" = "Can push below 1"
+)
+tx <- data.table(step = factor(names(WHAT), levels = rev(STEP_LEV)), what = WHAT)
+qt <- ggplot(tx, aes(x = 0, y = step, label = what))
+qt <- qt + geom_text(hjust = 0, size = 3.9)
+qt <- qt + scale_x_continuous(limits = c(0, 1), expand = c(0, 0))
+qt <- qt + facet_wrap(~"What it shows")
+qt <- qt +
+  theme_void(base_size = 12) +
+  theme(strip.text = element_text(colour = "black", face = "bold", hjust = 0, margin = margin(b = 5.5)))
+qq <- patchwork::wrap_plots(q, qt, widths = c(5, 1.25)) + patchwork::plot_layout(guides = "collect") & theme(legend.position = "bottom")
+ggsave("figures/bias_steps.png", qq, width = 340, height = 95, units = "mm", dpi = 200, bg = "white")
